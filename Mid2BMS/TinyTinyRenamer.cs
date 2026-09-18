@@ -23,9 +23,15 @@ namespace Mid2BMS
             if (RenamedBMSDirectory == null) { throw new ArgumentNullException(); }
             if (KeySoundFileExtension == null) { throw new ArgumentNullException(); }
 
-            SHA512Managed hashComputer = new SHA512Managed();
+            using SHA512 hashComputer = SHA512.Create();
 
-            Func<string, string> GetFileHash = filename => hashComputer.ComputeHash(new FileStream(filename, FileMode.Open, FileAccess.Read)).Select(x => x.ToString("x2")).Join("");
+            Func<string, string> GetFileHash = filename =>
+            {
+                using (FileStream stream = new FileStream(filename, FileMode.Open, FileAccess.Read))
+                {
+                    return hashComputer.ComputeHash(stream).Select(x => x.ToString("x2")).Join("");
+                }
+            };
             // ラムダ式、(技術的に)やばいなあ・・・すごいなあ・・・
             
             var oldName_to_hash = new Dictionary<string, string>();

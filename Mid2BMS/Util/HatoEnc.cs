@@ -19,6 +19,8 @@ namespace Mid2BMS
             // なるほど。
 
 #if !SILVERLIGHT
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             // 静的コンストラクタでは例外が起きてほしくない（ような気がする）
             try
             {

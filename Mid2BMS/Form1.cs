@@ -12,8 +12,6 @@ using System.Threading.Tasks;
 using Codeplex.Data;
 using System.Text.RegularExpressions;  // DynamicJson
 //using System.Runtime.Serialization.Json;
-using System.Web;
-using System.Security.Cryptography;
 #if SILVERLIGHT
 using System.Windows;
 #else
@@ -1543,8 +1541,10 @@ namespace Mid2BMS
                                 .Join("\n");
                             File.WriteAllText(Path.ChangeExtension(textoutpath, "csv"), resultcsv);
 
-                            System.Diagnostics.Process p =
-                                System.Diagnostics.Process.Start(textoutpath);
+                            Process p = Process.Start(new ProcessStartInfo(textoutpath)
+                            {
+                                UseShellExecute = true
+                            });
                         }
                     }
                 };
@@ -1715,7 +1715,10 @@ namespace Mid2BMS
         private void someLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             ((LinkLabel)sender).LinkVisited = true;
-            System.Diagnostics.Process.Start(((LinkLabel)sender).Text);
+            Process.Start(new ProcessStartInfo(((LinkLabel)sender).Text)
+            {
+                UseShellExecute = true
+            });
         }
 
         private void button1_Click_1(object sender, EventArgs e)
