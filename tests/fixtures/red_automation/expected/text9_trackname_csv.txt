@@ -1,0 +1,8 @@
+Tr	nta	ntm	TrackName
+	(waves)	(notes)	
+0	0	0	トランスポート
+1	0	0	bass (purple)
+2	0	0	drums
+3	13	13	lead
+4	0	0	lead - automation
+5	70	70	modulation

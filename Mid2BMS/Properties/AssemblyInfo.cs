@@ -34,3 +34,7 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+
+// Characterization tests exercise the legacy pipeline without making its
+// internal implementation part of the public API.
+[assembly: InternalsVisibleTo("Mid2BMS.CharacterizationTests")]
