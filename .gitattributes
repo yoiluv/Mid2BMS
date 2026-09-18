@@ -61,3 +61,8 @@
 #*.PDF   diff=astextplain
 #*.rtf   diff=astextplain
 #*.RTF   diff=astextplain
+
+# Golden Master files are compared byte-for-byte. Disable line-ending and
+# encoding transformations for both fixture inputs and expected outputs.
+tests/fixtures/**/input.mid binary
+tests/fixtures/**/expected/** binary

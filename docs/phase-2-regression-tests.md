@@ -33,6 +33,8 @@ MyForm.Mid2BMS_Process
 
 `encoding.ini`と実行中の生成物はOSの一時directoryへ隔離され、fixtureや通常の作業directoryを上書きしない。成功時は一時directoryを削除し、失敗時は調査用にactual出力の場所を表示して保持する。
 
+Golden Masterと入力MIDIは`.gitattributes`でbinary扱いにしている。Gitのcheckout時にも改行・encoding変換を行わず、byte比較可能な状態を維持する。
+
 ## fixture matrix
 
 | Fixture | 入力 | Mode / 設定 | 目的 |
