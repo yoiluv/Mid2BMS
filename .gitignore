@@ -201,3 +201,6 @@ ModelManifest.xml
 
 # Visual Studio 2015 cache/options directory
 .vs/
+
+# テスト・開発用
+Assets/*
