@@ -1,5 +1,7 @@
 # Phase 1: 現行版のビルド環境確立
 
+> この文書はPhase 1完了時点の`.NET Framework 4.0`環境を記録したもの。Phase 3以降の現在の構成は[phase-3-project-modernization.md](phase-3-project-modernization.md)を参照。
+
 ## 結果
 
 現行のターゲットフレームワークとソースコードを変更せず、`Debug|x86` を再現可能にビルドできるようにした。
