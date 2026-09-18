@@ -31,13 +31,21 @@ namespace Mid2BMS
         //**************************************************
 
         //################ 入出力パラメータ ################
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public String TrackName_csv { get; set; }  // 親フォーム(Form1)から値を受け取る
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<String> TrackNames { get; set; }
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<String> InstrumentNames { get; set; }
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IsDrumsList { get; set; }
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IgnoreList { get; set; }
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IsChordList { get; set; }
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IsXChainList { get; set; }  // RedModeとシーケンスレイヤーの両方が（？）選択されている場合に、サイドチェイントリガノーツとして扱う
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IsOneShotList { get; set; }  // Midiノーツの長さを無視して処理する
 
         //################# 出力パラメータ #################

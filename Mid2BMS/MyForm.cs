@@ -24,23 +24,24 @@ namespace Mid2BMS
 
         private String GetHash(String fileName)
         {
-            System.IO.FileStream fs = new System.IO.FileStream(
+            using (System.IO.FileStream fs = new System.IO.FileStream(
                 fileName,
                 System.IO.FileMode.Open,
                 System.IO.FileAccess.Read,
-                System.IO.FileShare.Read);
-            var md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
-            //ハッシュ値を計算する
-            byte[] bs = md5.ComputeHash(fs);
-            fs.Close();
-
-            //byte型配列を16進数の文字列に変換
-            StringBuilder result = new StringBuilder();
-            foreach (byte b in bs)
+                System.IO.FileShare.Read))
+            using (var md5 = System.Security.Cryptography.MD5.Create())
             {
-                result.Append(b.ToString("x2"));
+                //ハッシュ値を計算する
+                byte[] bs = md5.ComputeHash(fs);
+
+                //byte型配列を16進数の文字列に変換
+                StringBuilder result = new StringBuilder();
+                foreach (byte b in bs)
+                {
+                    result.Append(b.ToString("x2"));
+                }
+                return result.ToString();
             }
-            return result.ToString();
         }
 
         String[] Mid2BMS_HashTesteeFileNames = new String[] {
