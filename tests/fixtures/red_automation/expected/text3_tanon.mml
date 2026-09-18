@@ -1,0 +1,53 @@
+TimeBase(3840)
+
+// Track 0 (conductor track)
+Track(1) q100
+TrackName = {"トランスポート"} r1r1r1r1
+
+
+
+// Track 1
+Track(2) q100
+TrackName = {"bass (purple)"} r1r1r1r1
+
+
+
+// Track 2
+Track(3) q100
+TrackName = {"drums"} r1r1r1r1
+
+
+
+// Track 3
+Track(4) q100
+TrackName = {"lead"} r1r1r1r1
+
+v100
+ l4
+  o5 c r1 r1 r1 
+ l2
+  o5 c r1 r1 r1 
+ l4
+  o5 d r1 r1 r1 e r1 r1 r1 f r1 r1 r1 g r1 r1 r1 
+
+
+// Track 4
+Track(5) q100
+TrackName = {"lead - automation"} r1r1r1r1
+
+
+
+// Track 5
+Track(6) q100
+TrackName = {"modulation"} r1r1r1r1
+
+v100
+ l16
+  o4 g r1 r1 r1 a+r1 r1 r1 
+  o5 c r1 r1 r1 
+ l8
+  o5 c r1 r1 r1 
+ l16
+  o5 e r1 r1 r1 
+
+

@@ -1,0 +1,48 @@
+
+
+
+Tempo(160)TimeBase=(384*40);
+// Hello.
+// 「トラック番号修正」や「@118付加」を適宜
+
+
+
+// Chunk 1297377380 (1297377380 is header chunk)
+// Chunk Size 6 (header chunk)
+
+// Chunk Size 68 (data chunk)
+Track(0)  // チャンネルはお任せ
+  // TrackName = トランスポート
+  // InstrumentName = Hardware Interface II
+q%0l%0r 
+
+
+// Chunk Size 538 (data chunk)
+Track(1)  // チャンネルはお任せ
+  // TrackName = bass
+  // InstrumentName = bass
+q%0l%0r q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o2a+ q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o2a+ q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o2a+ q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o3c  q%12l%12v100o3c  q%12l%12v100o4c  q%12l%12v100o5c  q%12l%768v100o6c  
+
+
+// Chunk Size 468 (data chunk)
+Track(2)  // チャンネルはお任せ
+  // TrackName = drums
+  // InstrumentName = drums
+q%0l%0r q%6l%0v80o3c  q%6l%0v80o3g  q%6l%24v80o3a  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%12v80o3g+ q%6l%12v80o3c  q%6l%0v80o3c  q%6l%24v80o3g  q%6l%0v80o3c  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%24v80o3g  q%6l%24v80o3g+ q%6l%0v80o3c  q%6l%12v80o3g  q%6l%12v80o3c  q%6l%0v80o3c  q%6l%12v80o3g+ q%6l%12v80o3c  q%6l%774v80o3a  
+
+
+// Chunk Size 130 (data chunk)
+Track(3)  // チャンネルはお任せ
+  // TrackName = lead
+  // InstrumentName = lead
+q%0l%0r q%48l%48v100o5c  q%48l%48v100o5d  q%48l%48v100o5e  q%48l%48v100o5f  q%48l%48v100o5g  q%48l%48v100o5f  q%48l%48v100o5e  q%48l%48v100o5d  q%96l%192v100o5c  q%96l%96v100o5c  q%48l%48v100o5d  q%48l%48v100o5g  q%96l%864v100o5c  
+
+
+// Chunk Size 744 (data chunk)
+Track(4)  // チャンネルはお任せ
+  // TrackName = key
+  // InstrumentName = key
+q%0l%0r q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%24l%0v100o5c  q%24l%0v100o5e  q%24l%24v100o5g  q%24l%0v100o5c+ q%24l%0v100o5e  q%24l%24v100o5g+ q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%24l%0v100o5c  q%24l%0v100o5e  q%24l%24v100o5g  q%24l%0v100o4b  q%24l%0v100o5d+ q%24l%24v100o5f+ q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%24l%0v100o5c  q%24l%0v100o5e  q%24l%24v100o5g  q%24l%0v100o5c+ q%24l%0v100o5e  q%24l%24v100o5g+ q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%36l%0v100o5c  q%36l%0v100o5e  q%36l%36v100o5g  q%24l%0v100o5c  q%24l%0v100o5e  q%24l%24v100o5g  q%24l%0v100o5c+ q%24l%0v100o5e  q%24l%24v100o5g+ q%36l%0v74o6c  q%36l%0v74o6e  q%36l%36v74o6g  q%36l%0v54o6c  q%36l%0v54o6e  q%36l%36v54o6g  q%36l%0v36o6c  q%36l%0v36o6e  q%36l%36v36o6g  q%36l%0v29o6c  q%36l%0v29o6e  q%36l%36v29o6g  q%24l%0v20o6c  q%24l%0v20o6e  q%24l%24v20o6g  q%24l%0v13o6c  q%24l%0v13o6e  q%24l%960v13o6g  
+
+
+// End Analysis

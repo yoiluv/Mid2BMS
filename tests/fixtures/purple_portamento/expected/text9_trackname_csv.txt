@@ -1,0 +1,7 @@
+Tr	nta	ntm	TrackName
+	(waves)	(notes)	
+0	0	0	トランスポート
+1	7	64	bass
+2	9	55	drums
+3	12	13	lead
+4	33	90	key
