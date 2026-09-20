@@ -10,7 +10,16 @@ namespace Mid2BMS
     // A snapshot of the MIDI-derived information that identifies one note in a key sound.
     internal sealed record KeySoundNoteIdentity(int NoteNumber, int Velocity, long LengthNumerator,
         long LengthDenominator, long? StartNumerator, long? StartDenominator,
-        int? PreviousNoteNumber);
+        int? PreviousNoteNumber)
+    {
+        public static KeySoundNoteIdentity FromMNote(MNote note)
+        {
+            return new KeySoundNoteIdentity(note.n, note.v, note.l.n, note.l.d,
+                note.t == null ? null : (long?)note.t.n,
+                note.t == null ? null : (long?)note.t.d,
+                note.prev == null ? null : (int?)note.prev.n);
+        }
+    }
 
     internal sealed class KeySound
     {
@@ -104,11 +113,7 @@ namespace Mid2BMS
             {
                 if (!String.Equals(outputNames[i], bmsFileNames[i], StringComparison.Ordinal))
                     throw new InvalidOperationException("WaveSplitter and BMS key sound filenames differ.");
-                KeySoundNoteIdentity[] notes = identities[i].Select(note => new KeySoundNoteIdentity(
-                    note.n, note.v, note.l.n, note.l.d,
-                    note.t == null ? null : (long?)note.t.n,
-                    note.t == null ? null : (long?)note.t.d,
-                    note.prev == null ? null : (int?)note.prev.n)).ToArray();
+                KeySoundNoteIdentity[] notes = identities[i].Select(KeySoundNoteIdentity.FromMNote).ToArray();
                 keySounds.Add(new KeySound(i, trackId, mode, isChord, isOneShot,
                     firstWavId + i, outputNames[i], bmsFileNames[i], notes));
             }

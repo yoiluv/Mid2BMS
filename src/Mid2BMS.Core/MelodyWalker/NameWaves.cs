@@ -8,99 +8,19 @@ namespace Mid2BMS
     class NameWaves
     {
         public List<String> wavnms;
-        public bool IsRedMode = true;
+        private readonly IKeySoundNamingStrategy namingStrategy;
 
-        String getNoteHeight(int nt)
+        public NameWaves(IKeySoundNamingStrategy namingStrategy = null)
         {
-            switch (nt % 12)
-            {
-                case 0: return "c";
-                case 1: return "cp";
-                case 2: return "d";
-                case 3: return "dp";
-                case 4: return "e";
-                case 5: return "f";
-                case 6: return "fp";
-                case 7: return "g";
-                case 8: return "gp";
-                case 9: return "a";
-                case 10: return "ap";
-                case 11: return "b";
-            }
-            return "";
+            this.namingStrategy = namingStrategy ?? new LegacyKeySoundNamingStrategy();
         }
 
-        String getNoteString(int namingway, int nt, long Ln1, long Ln2, int velo, bool isOneShot)
+        private string Name(int namingway, string trackName, KeySoundMode mode, int index,
+            bool isChord, bool isOneShot, IReadOnlyList<MNote> notes, string prefix, string suffix)
         {
-            if (namingway == 0)
-            {
-                //if (at > 0)
-                //{
-                //    return "at" + at + "v" + velo + "l" + Ln2 + (Ln1 == 1 ? "" : ("_" + Ln1)) + "" + "o" + (nt / 12) + getNoteHeight(nt);
-                //}
-                //else
-                //{
-                return "v" + velo + (isOneShot ? "" : ("l" + Ln2 + (Ln1 == 1 ? "" : ("-" + Ln1)))) + "" + "o" + (nt / 12) + getNoteHeight(nt);
-                //}
-            }
-            if (namingway == 1)
-            {
-                return "o" + (nt / 12) + getNoteHeight(nt);
-            }
-            return "NULL";
-        }
-
-        String getNoteStringPurpleMode(int namingway, int nt, long Ln1, long Ln2, int velo, int prevNoteN, bool isOneShot)
-        {
-            if (namingway == 0)
-            {
-                //if (at > 0)
-                //{
-                //    return "at" + at + "v" + velo + "l" + Ln2 + (Ln1 == 1 ? "" : ("_" + Ln1)) + "" + "o" + (nt / 12) + getNoteHeight(nt);
-                //}
-                //else
-                //{
-                return "v" + velo + (isOneShot ? "" : ("l" + Ln2 + (Ln1 == 1 ? "" : ("-" + Ln1)))) + "" + "o" + (nt / 12) + getNoteHeight(nt) + "-" + "o" + (prevNoteN / 12) + getNoteHeight(prevNoteN);
-                //}
-            }
-            if (namingway == 1)
-            {
-                return "o" + (nt / 12) + getNoteHeight(nt);
-            }
-            return "NULL";
-        }
-
-        String getNoteStringRedMode(int namingway, int number, int nt, long Ln1, long Ln2, int velo, bool isOneShot)
-        {
-            if (namingway == 0)
-            {
-                //if (at > 0)
-                //{
-                //    return String.Format("{0:D5}_",number + 1) + "at" + at + "v" + velo + "l" + Ln2 + (Ln1 == 1 ? "" : ("_" + Ln1)) + "" + "o" + (nt / 12) + getNoteHeight(nt);
-                //}
-                //else
-                //{
-                return String.Format("{0:D5}_", number + 1) + "v" + velo + (isOneShot ? "" : ("l" + Ln2 + (Ln1 == 1 ? "" : ("-" + Ln1)))) + "" + "o" + (nt / 12) + getNoteHeight(nt);
-                //}
-            }
-            if (namingway == 1)
-            {
-                return "o" + (nt / 12) + getNoteHeight(nt);
-            }
-            return "NULL";
-        }
-
-        String IntToInt10(int n, int slen)
-        {
-            int i;
-            String s2 = "";
-            String num10 = "0123456789";
-            for (i = 0; i < slen; i++)
-            {
-                s2 = num10[n % 10].ToString() + s2;
-                n /= 10;
-            }
-            return s2;
+            var identity = notes.Select(KeySoundNoteIdentity.FromMNote).ToArray();
+            return namingStrategy.GetFileName(new KeySoundContext(
+                namingway, trackName, mode, index, isChord, isOneShot, identity, prefix, suffix));
         }
 
         /// <summary>
@@ -123,13 +43,10 @@ namespace Mid2BMS
         {
             if (isPurpleMode) throw new Exception("purplemodeの場合にchord modeを選択することは出来ないよ");
 
-            IsRedMode = isRedMode;
-
             int i;
             //String s2 = "";
             String w;
             StringBuilder s2 = new StringBuilder();
-            String s0;
 
             wavnms = new List<string>();
 
@@ -143,14 +60,9 @@ namespace Mid2BMS
 
             for (i = 0; i < ntantmC.Count; i++)
             {
-                //s0 = getNoteString(namingway, ntantm[i].VoiceN, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v);
-                s0 = String.Format("{0:D5}_", i + 1);
-                foreach (MNote mnote in ntantmC[i])
-                {
-                    s0 += getNoteHeight(mnote.n);
-                }
-                wavnms.Add(bb + s0 + ba);
-                w = ob + s0 + oa;
+                KeySoundMode mode = isRedMode ? KeySoundMode.Red : KeySoundMode.Blue;
+                wavnms.Add(Name(namingway, ib, mode, i, true, false, ntantmC[i], bb, ba));
+                w = Name(namingway, ib, mode, i, true, false, ntantmC[i], ob, oa);
                 s2.Append(w + "\r\n");
             }
 
@@ -178,13 +90,10 @@ namespace Mid2BMS
             int namingway, String ib, String ia, String ob, String oa, String bb, String ba,
             out String OutputInArrayFormat, bool isRedMode, bool isPurpleMode, List<MNote> ntantm, bool isOneShot)
         {
-            IsRedMode = isRedMode;
-
             int i;
             //String s2 = "";
             String w;
             StringBuilder s2 = new StringBuilder();
-            String s0;
 
             wavnms = new List<string>();
 
@@ -196,14 +105,13 @@ namespace Mid2BMS
 
             s2.Append("1" + "\r\n");  // original index
 
-            if (!IsRedMode && !isPurpleMode)  // blue mode
+            if (!isRedMode && !isPurpleMode)  // blue mode
             {
                 for (i = 0; i < ntantm.Count; i++)
                 {
-                    //s0 = getNoteString(namingway, ntantm[i].VoiceN, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v);
-                    s0 = getNoteString(namingway, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v, isOneShot);
-                    wavnms.Add(bb + s0 + ba);
-                    w = ob + s0 + oa;
+                    var note = new[] { ntantm[i] };
+                    wavnms.Add(Name(namingway, ib, KeySoundMode.Blue, i, false, isOneShot, note, bb, ba));
+                    w = Name(namingway, ib, KeySoundMode.Blue, i, false, isOneShot, note, ob, oa);
                     s2.Append(w + "\r\n");
                 }
             }
@@ -211,10 +119,9 @@ namespace Mid2BMS
             {
                 for (i = 0; i < ntantm.Count; i++)
                 {
-                    //s0 = getNoteStringRedMode(namingway, i, ntantm[i].VoiceN, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v);
-                    s0 = getNoteStringPurpleMode(namingway, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v, ntantm[i].prev.n, isOneShot);
-                    wavnms.Add(bb + s0 + ba);
-                    w = ob + s0 + oa;
+                    var note = new[] { ntantm[i] };
+                    wavnms.Add(Name(namingway, ib, KeySoundMode.Purple, i, false, isOneShot, note, bb, ba));
+                    w = Name(namingway, ib, KeySoundMode.Purple, i, false, isOneShot, note, ob, oa);
 
                     // previous note
                     s2.Append("____dummy_" + w + "\r\n");
@@ -227,10 +134,9 @@ namespace Mid2BMS
             {
                 for (i = 0; i < ntantm.Count; i++)
                 {
-                    //s0 = getNoteStringRedMode(namingway, i, ntantm[i].VoiceN, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v);
-                    s0 = getNoteStringRedMode(namingway, i, ntantm[i].n, ntantm[i].l.n, ntantm[i].l.d, ntantm[i].v, isOneShot);
-                    wavnms.Add(bb + s0 + ba);
-                    w = ob + s0 + oa;
+                    var note = new[] { ntantm[i] };
+                    wavnms.Add(Name(namingway, ib, KeySoundMode.Red, i, false, isOneShot, note, bb, ba));
+                    w = Name(namingway, ib, KeySoundMode.Red, i, false, isOneShot, note, ob, oa);
                     s2.Append(w + "\r\n");
                 }
             }

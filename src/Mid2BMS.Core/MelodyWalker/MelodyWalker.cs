@@ -16,6 +16,7 @@ namespace Mid2BMS
         public int VacantBMSChannelIdx = 0;  // 0から始まる、 channelTemplate の添え字
         public int WavidSpacing = 4;
         public KeySoundManifest Manifest { get; private set; } = new KeySoundManifest();
+        public IKeySoundNamingStrategy NamingStrategy { get; set; } = new LegacyKeySoundNamingStrategy();
 
         List<String> MMLs = new List<String>();
         List<String> MidiTrackNames = new List<String>();
@@ -219,7 +220,7 @@ namespace Mid2BMS
 
 
 
-            nw = new NameWaves();
+            nw = new NameWaves(NamingStrategy);
             String WavFileName_Prefix = isRedMode ? WavFileName_Prefix_Red : isPurpleMode ? WavFileName_Prefix_Purple : WavFileName_Prefix_Blue;
             String outInArray;
             if (isChordMode)
