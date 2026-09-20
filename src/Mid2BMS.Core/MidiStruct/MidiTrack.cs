@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 using System.Diagnostics; 
 
 namespace Mid2BMS
@@ -199,9 +198,9 @@ namespace Mid2BMS
             {
                 if (!messageShown && deltatick > 9999 * 4 * midistruct.BeatsToTicks(1))
                 {
-                    if (DialogResult.Yes == MessageBox.Show(
+                    if (CoreInteraction.ConfirmAbort(
                         "text3_tanon_red.mml の小節数が9999を超過しました。処理を中断しますか？(Yes to abort)",
-                         "Confirm to continue", MessageBoxButtons.YesNo))
+                         "Confirm to continue"))
                     {
                         throw new Exception("ユーザーの指示により処理を中断しました。");
                     }
@@ -210,9 +209,9 @@ namespace Mid2BMS
                 int progress = i * 100 / eventsOrderByTrackID.Count;
                 if (!messageShown && st.ElapsedMilliseconds > 5000 && progress < 50)
                 {
-                    if (DialogResult.Yes == MessageBox.Show(
+                    if (CoreInteraction.ConfirmAbort(
                         "5秒経過しましたが" + progress + "% しか処理が完了していません。処理を中断しますか？(Yes to abort)",
-                         "Confirm to continue", MessageBoxButtons.YesNo))
+                         "Confirm to continue"))
                     {
                         throw new Exception("ユーザーの指示により処理を中断しました。");
                     }

@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 using System.IO;
 using System.Xml.Serialization;
 
@@ -61,7 +60,7 @@ namespace Mid2BMS
 
             if (bpm >= 300 || bpm < 50)
             {
-                MessageBox.Show(
+                CoreInteraction.ShowMessage(
                     "BPMが" + (bpm >= 300 ? "高い" : "低い") + "midiファイルを読み込んだようです。(BPM = " + bpm + ")\n" +
                     "もし、次の段階で正常に音切りが出来なかった場合は、\n" +
                     "[1]Mid2MMLタブにある、MarginTimeの項を、「 BPM / 10 」程度の値にしてみてください。",
@@ -134,7 +133,7 @@ namespace Mid2BMS
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.ToString());
+                    CoreInteraction.ShowMessage(e.ToString());
 
                     text[7] += "----( TrackNo = " + i + " (0 origin) )-----------------------------------\r\n";
                     text[7] += e.ToString() + "\r\n";

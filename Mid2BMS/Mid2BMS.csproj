@@ -34,6 +34,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\src\Mid2BMS.Core\Mid2BMS.Core.csproj" />
+    <!-- Preserve the legacy output artifact; the current source does not call NVorbis directly. -->
     <Reference Include="NVorbis">
       <HintPath>..\NVorbis\NVorbis.dll</HintPath>
       <Private>true</Private>
@@ -60,11 +62,6 @@
     <Compile Update="Form2.Designer.cs">
       <DependentUpon>Form2.cs</DependentUpon>
     </Compile>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <AutoGen>true</AutoGen>
-      <DesignTime>true</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
     <Compile Update="Properties\Settings.Designer.cs">
       <AutoGen>true</AutoGen>
       <DesignTimeSharedInput>true</DesignTimeSharedInput>
@@ -85,11 +82,6 @@
     </EmbeddedResource>
     <EmbeddedResource Update="Form2.ja-JP.resx">
       <DependentUpon>Form2.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
 
