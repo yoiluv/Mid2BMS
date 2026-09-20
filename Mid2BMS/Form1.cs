@@ -934,7 +934,7 @@ namespace Mid2BMS
         {
             try
             {
-                MyForm.ChangeMidiTimebase(
+                MidiQuantizer.ChangeMidiTimebase(
                     neu.IFileStream(textBox_MidiInput5.Text, FileMode.Open, FileAccess.Read),
                     neu.IFileStream(textBox_MidiOut5.Text, FileMode.Create, FileAccess.Write),
                     Convert.ToInt32(textBox_newTimeBase.Text)
@@ -1701,7 +1701,7 @@ namespace Mid2BMS
         {
             try
             {
-                MyForm.QuantizeVelocity(
+                MidiQuantizer.QuantizeVelocity(
                     neu.IFileStream(textBox_MidiInput5.Text, FileMode.Open, FileAccess.Read),
                     neu.IFileStream(textBox_MidiOut5.Text, FileMode.Create, FileAccess.Write),
                     Convert.ToInt32(textBox_velQuantInt.Text));
