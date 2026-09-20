@@ -19,6 +19,7 @@ namespace Mid2BMS.Core.Tests
                 AssertHostInteractionReceivesCoreMessages();
                 AssertLegacyHashGuard();
                 AssertMidiQuantization();
+                AssertLegacyKeySoundNaming();
                 AssertKeySoundManifest();
                 AssertWaveSplitService();
                 AssertDuplicateDefinitionService();
@@ -187,6 +188,52 @@ namespace Mid2BMS.Core.Tests
             }
         }
 
+        private static void AssertLegacyKeySoundNaming()
+        {
+            var strategy = new LegacyKeySoundNamingStrategy();
+            var note = new MNote(60, 2, 3, 99);
+            var context = new KeySoundContext(0, "Piano", KeySoundMode.Blue, 0,
+                false, false, new[] { KeySoundNoteIdentity.FromMNote(note) }, "b_Piano_", ".wav");
+            Assert(strategy.GetFileName(context) == "b_Piano_v99l3-2o5c.wav",
+                "Legacy blue naming changed.");
+            Assert(strategy.GetFileName(context with { IsOneShot = true }) == "b_Piano_v99o5c.wav",
+                "Legacy one-shot naming changed.");
+            Assert(strategy.GetFileName(context with { NamingWay = 1 }) == "b_Piano_o5c.wav",
+                "Legacy pitch-only naming changed.");
+            string[] pitchNames = { "c", "cp", "d", "dp", "e", "f", "fp", "g", "gp", "a", "ap", "b" };
+            for (int pitch = 0; pitch < pitchNames.Length; pitch++)
+            {
+                var chromaticNote = new MNote(60 + pitch, 1, 4, 80);
+                Assert(strategy.GetFileName(context with { NamingWay = 1,
+                    Notes = new[] { KeySoundNoteIdentity.FromMNote(chromaticNote) } })
+                    == "b_Piano_o5" + pitchNames[pitch] + ".wav",
+                    "Legacy pitch spelling changed for semitone " + pitch + ".");
+            }
+            Assert(strategy.GetFileName(context with { NamingWay = 99 }) == "b_Piano_NULL.wav",
+                "Legacy reserved naming way changed.");
+            Assert(strategy.GetFileName(context with { Mode = KeySoundMode.Red, IndexWithinTrack = 4,
+                Prefix = "r_Piano_" }) == "r_Piano_00005_v99l3-2o5c.wav",
+                "Legacy red naming changed.");
+
+            var previous = new MNote(59, 1, 4, 80);
+            var purpleNote = new MNote(note, previous);
+            Assert(strategy.GetFileName(context with { Mode = KeySoundMode.Purple,
+                Prefix = "p_Piano_", Notes = new[] { KeySoundNoteIdentity.FromMNote(purpleNote) } })
+                == "p_Piano_v99l3-2o5c-o4b.wav", "Legacy purple naming changed.");
+            Assert(strategy.GetFileName(context with { IsChord = true,
+                Notes = new[] { KeySoundNoteIdentity.FromMNote(note),
+                    KeySoundNoteIdentity.FromMNote(new MNote(64, 1, 4, 80)) } })
+                == "b_Piano_00001_ce.wav", "Legacy chord naming changed.");
+
+            var naming = new NameWaves(new TestNamingStrategy());
+            string renamerText;
+            naming.AllNoteToName(0, "Piano", ".wav", "b_Piano_", ".wav",
+                "b_Piano_", ".wav", out renamerText, false, false, new List<MNote> { note }, false);
+            Assert(naming.wavnms.Single() == "b_Piano_custom_1.wav" &&
+                renamerText.Contains("b_Piano_custom_1.wav\r\n"),
+                "NameWaves did not use the injected naming strategy for both outputs.");
+        }
+
         private static void AssertKeySoundManifest()
         {
             var manifest = new KeySoundManifest();
@@ -284,6 +331,14 @@ namespace Mid2BMS.Core.Tests
             public void ShowMessage(string message) { Messages.Add(message); }
             public void ShowMessage(string message, string caption) { Messages.Add(message); }
             public bool ConfirmAbort(string message, string caption) { return Abort; }
+        }
+
+        private sealed class TestNamingStrategy : IKeySoundNamingStrategy
+        {
+            public string GetFileName(KeySoundContext context)
+            {
+                return context.Prefix + "custom_" + (context.IndexWithinTrack + 1) + context.Suffix;
+            }
         }
     }
 }
