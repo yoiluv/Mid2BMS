@@ -10,7 +10,7 @@ namespace Mid2BMS
     {
         /// <summary>
         /// wavidの割り当て。
-        /// wavnms[i] の音は、wavid が wvs[i] であり、その音の実体が nts[i] に対応する。
+        /// KeySoundTrack.KeySounds[i] の音は、WavId が wvs[i] であり、その音の実体が nta[i] に対応する。
         /// </summary>
         List<int> wvs;
 
@@ -75,13 +75,13 @@ namespace Mid2BMS
             bool isRedMode, bool isPurpleMode, bool isDrums, bool isChordMode,
             List<MNote> nta_,
             List<MNote> ntm_,
-            List<String> wavnms)
+            KeySoundTrack keySoundTrack)
         {
             nta = nta_;
             ntm = ntm_;
             IsRedMode = isRedMode;
             IsPurpleMode = isPurpleMode;
-            return GetWavDef(ref bmwavid, wavnms) + "\r\n" + haichiAsBMS(ref chansNumber, bmes, emes, isDrums, isChordMode);
+            return GetWavDef(ref bmwavid, keySoundTrack) + "\r\n" + haichiAsBMS(ref chansNumber, bmes, emes, isDrums, isChordMode);
         }
 
         String IntToInt10(int n, int slen)
@@ -122,17 +122,19 @@ namespace Mid2BMS
             return n;
         }
 
-        String GetWavDef(ref int wavid, List<String> wavnms)
-        {  // ついでにwavidを割り当てる(wvs)
+        String GetWavDef(ref int wavid, KeySoundTrack keySoundTrack)
+        {  // Manifest の WAV ID を BMS 配置用の wvs に取り込む。
             int i;
             StringSuruyatu s2 = "";
             wvs = new List<int>();
 
-            for (i = 0; i < wavnms.Count; i++)
+            for (i = 0; i < keySoundTrack.KeySounds.Count; i++)
             {
-
-                s2 += "#WAV" + IntToHex36Upper(wavid, 2) + " " + wavnms[i] + "\r\n";
-                wvs.Add(wavid);
+                KeySound keySound = keySoundTrack.KeySounds[i];
+                if (keySound.WavId != wavid)
+                    throw new InvalidOperationException("Key sound WAV ID is out of sequence.");
+                s2 += "#WAV" + IntToHex36Upper(keySound.WavId.Value, 2) + " " + keySound.BmsFileName + "\r\n";
+                wvs.Add(keySound.WavId.Value);
                 wavid++;
             }
             return s2 + "\r\n";

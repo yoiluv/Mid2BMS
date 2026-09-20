@@ -15,6 +15,7 @@ namespace Mid2BMS
         //public int VacantWavid = 1;  // 36進数
         public int VacantBMSChannelIdx = 0;  // 0から始まる、 channelTemplate の添え字
         public int WavidSpacing = 4;
+        public KeySoundManifest Manifest { get; private set; } = new KeySoundManifest();
 
         List<String> MMLs = new List<String>();
         List<String> MidiTrackNames = new List<String>();
@@ -35,6 +36,7 @@ namespace Mid2BMS
             String margintime_beats, out String trackCsv, out List<bool> isEmptyList, decimal bpm,
             ref double progressValue, double progressMin, double progressMax)
         {
+            Manifest = new KeySoundManifest();
             MMLs = MMLs_;
             MidiTrackNames = MidiTrackNames_;
             //VacantWavid = VacantWavid_;
@@ -122,7 +124,6 @@ namespace Mid2BMS
                     text[1] += "\r\n\r\n\r\n";
                     text[2] += "\r\n\r\n\r\n";
                     text[3] += "\r\n\r\n\r\n";
-                    text[4] += "";
                     text[5] += "\r\n\r\n\r\n";
                     text[6] += "\r\n\r\n\r\n";
                     text[7] += "\r\n";
@@ -148,7 +149,7 @@ namespace Mid2BMS
             }
 
             String BMSFileName = isRedMode ? @"text6_bms_red.txt" : (isPurpleMode ? @"text6_bms_purple.txt" : @"text6_bms_blue.txt");
-            FileIO.WriteAllText(pathBase + @"text5_renamer_array.txt", text[4]);
+            FileIO.WriteAllText(pathBase + @"text5_renamer_array.txt", Manifest.ToLegacyRenamerText());
             FileIO.WriteAllText(pathBase + BMSFileName, text[5]);
             FileIO.WriteAllText(pathBase + @"text9_trackname_csv.txt", text[8]);
 
@@ -240,7 +241,14 @@ namespace Mid2BMS
                     out outInArray, isRedMode, isPurpleMode, isRedMode ? mi3.ntm : mi3.nta, isOneShot);
             }
             progressValue = progressMin + (progressMax - progressMin) * 0.60;
-            text[4] += outInArray;
+            IReadOnlyList<IReadOnlyList<MNote>> identities = isChordMode
+                ? (isRedMode ? mi3.ntmChordList : mi3.ntaChord)
+                    .Select(chord => (IReadOnlyList<MNote>)chord).ToArray()
+                : (isRedMode ? mi3.ntm : mi3.nta)
+                    .Select(note => (IReadOnlyList<MNote>)new[] { note }).ToArray();
+            KeySoundTrack keySoundTrack = Manifest.AddGeneratedTrack(TrackIndex,
+                isRedMode ? KeySoundMode.Red : isPurpleMode ? KeySoundMode.Purple : KeySoundMode.Blue,
+                isChordMode, isOneShot, VacantWavid, nw.wavnms, outInArray, identities);
 
 
             int lastMeasure = isChordMode
@@ -259,13 +267,13 @@ namespace Mid2BMS
                     isRedMode, isPurpleMode, isDrums, isChordMode,
                     mi3.ntaChord.Select(x => x[0]).ToList(),
                     mi3.ntmChordList.Select(x => x[0]).ToList(),
-                    nw.wavnms);
+                    keySoundTrack);
             }
             else
             {
                 text[5] += bp.Process(ref VacantWavid, ref VacantBMSChannelIdx, 1, placementEndMeasure,
                     isRedMode, isPurpleMode, isDrums, isChordMode,
-                    mi3.nta, mi3.ntm, nw.wavnms);
+                    mi3.nta, mi3.ntm, keySoundTrack);
             }
             if (!isEmpty)
             {
