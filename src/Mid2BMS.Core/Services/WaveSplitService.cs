@@ -28,9 +28,9 @@ namespace Mid2BMS
 
             if (renamingEnabled)
             {
-                WaveRenamer_Text = TextTransaction.SplitString(
-                    FileIO.ReadAllText(PathBase + @"text5_renamer_array.txt"),
-                    "\r\n", "//", StringSplitOptions.RemoveEmptyEntries);
+                KeySoundManifest manifest = KeySoundManifest.FromLegacyRenamerText(
+                    FileIO.ReadAllText(PathBase + @"text5_renamer_array.txt"));
+                WaveRenamer_Text = manifest.ToLegacyWaveRenamerRows();
 
                 if (inputFileIndicated)
                 {
@@ -38,14 +38,10 @@ namespace Mid2BMS
                 }
                 else
                 {
-                    WaveSplitter_Text = WaveRenamer_Text.Select(x => new[] { x[0] + x[1] }).ToArray();
+                    WaveSplitter_Text = manifest.Tracks.Select(track => new[] { track.InputPrefix + track.InputSuffix }).ToArray();
                 }
 
-                RenameRequiredFilesCount = WaveRenamer_Text.Select(
-                    x => x.Skip(3).Count(
-                        y => !(y.Length >= 10 && y.Substring(0, 10) == "____dummy_")  // ダミーファイルはカウントに含めない
-                    )
-                ).Sum();
+                RenameRequiredFilesCount = manifest.Tracks.Sum(track => track.RequiredWaveFileCount);
             }
             else
             {

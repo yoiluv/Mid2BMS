@@ -19,6 +19,7 @@ namespace Mid2BMS.Core.Tests
                 AssertHostInteractionReceivesCoreMessages();
                 AssertLegacyHashGuard();
                 AssertMidiQuantization();
+                AssertKeySoundManifest();
                 AssertWaveSplitService();
                 AssertDuplicateDefinitionService();
                 Console.WriteLine("Core isolation tests passed.");
@@ -169,11 +170,77 @@ namespace Mid2BMS.Core.Tests
                 Assert(createdCount >= 1, "Wave splitter created no key sounds.");
                 Assert(File.Exists(Path.Combine(directory, "renamed", "tone_1.wav")),
                     "Wave split output is missing.");
+
+                string renamerText = "input\r\n.wav\r\n1\r\ntone_2.wav\r\n//\r\n";
+                FileIO.WriteAllText(Path.Combine(directory, "text5_renamer_array.txt"), renamerText);
+                progress = 0;
+                createdCount = service.Split(-60, 0, 0, 0, true, true,
+                    "unused_{0}.wav", new[] { 0.0001f }, ref progress, out requiredCount);
+                Assert(requiredCount == 1 && createdCount == 1,
+                    "Manifest-backed wave split count changed.");
+                Assert(File.Exists(Path.Combine(directory, "renamed", "tone_2.wav")),
+                    "Manifest-backed wave split output is missing.");
             }
             finally
             {
                 Directory.Delete(directory, true);
             }
+        }
+
+        private static void AssertKeySoundManifest()
+        {
+            var manifest = new KeySoundManifest();
+            var note = new MNote(60, 1, 4, 80);
+            const string blueRow = "Piano\r\n.wav\r\n1\r\nb_Piano_v80o5c.wav\r\n//\r\n";
+            KeySoundTrack blue = manifest.AddGeneratedTrack(2, KeySoundMode.Blue, false, false,
+                17, new[] { "b_Piano_v80o5c.wav" }, blueRow,
+                new IReadOnlyList<MNote>[] { new[] { note } });
+            Assert(blue.KeySounds.Count == 1 && blue.KeySounds[0].WavId == 17,
+                "Manifest lost the WAV ID or key sound order.");
+            Assert(blue.KeySounds[0].TrackId == 2 && blue.KeySounds[0].Mode == KeySoundMode.Blue,
+                "Manifest lost the track or mode.");
+            Assert(blue.KeySounds[0].Identity[0].NoteNumber == 60 &&
+                blue.KeySounds[0].Identity[0].LengthNumerator == 1 &&
+                blue.KeySounds[0].Identity[0].LengthDenominator == 4,
+                "Manifest lost MIDI-derived identity.");
+
+            const string purpleRow = "Piano\r\n.wav\r\n1\r\n____dummy_p_Piano_v80o5c-o5b.wav\r\np_Piano_v80o5c-o5b.wav\r\n//\r\n";
+            KeySoundTrack purple = manifest.AddGeneratedTrack(3, KeySoundMode.Purple, false, false,
+                22, new[] { "p_Piano_v80o5c-o5b.wav" }, purpleRow,
+                new IReadOnlyList<MNote>[] { new[] { note } });
+            Assert(purple.RequiredWaveFileCount == 1 && purple.KeySounds.Count == 1,
+                "Purple-mode dummy was counted as a key sound.");
+            const string emptyChordRow = "Piano\r\n.wav\r\n1\r\n//\r\n";
+            KeySoundTrack emptyChord = manifest.AddGeneratedTrack(4, KeySoundMode.Blue, true, false,
+                23, Array.Empty<string>(), emptyChordRow, Array.Empty<IReadOnlyList<MNote>>());
+            Assert(emptyChord.KeySounds.Count == 0 && emptyChord.HasLegacyRow,
+                "Empty chord track disappeared from the compatibility format.");
+            const string chordRow = "Piano\r\n.wav\r\n1\r\nb_Piano_00001_ce.wav\r\n//\r\n";
+            KeySoundTrack chord = manifest.AddGeneratedTrack(5, KeySoundMode.Blue, true, false,
+                24, new[] { "b_Piano_00001_ce.wav" }, chordRow,
+                new IReadOnlyList<MNote>[] { new[] { note, new MNote(64, 1, 4, 80) } });
+            Assert(chord.KeySounds[0].IsChord && chord.KeySounds[0].Identity.Count == 2,
+                "Chord identity was flattened or lost.");
+            Assert(manifest.ToLegacyRenamerText() == blueRow + purpleRow + emptyChordRow + chordRow,
+                "Manifest changed the legacy renamer format.");
+
+            KeySoundManifest loaded = KeySoundManifest.FromLegacyRenamerText(manifest.ToLegacyRenamerText());
+            Assert(loaded.ToLegacyWaveRenamerRows().Length == 4 &&
+                loaded.Tracks[1].KeySounds[0].FileName == purple.KeySounds[0].BmsFileName,
+                "WaveSplitter did not recover the manifest filenames.");
+
+            bool rejected = false;
+            try
+            {
+                new KeySoundManifest().AddGeneratedTrack(0, KeySoundMode.Blue, false, false,
+                    1, new[] { "different.wav" }, blueRow,
+                    new IReadOnlyList<MNote>[] { new[] { note } });
+            }
+            catch (InvalidOperationException)
+            {
+                rejected = true;
+            }
+            Assert(rejected, "Manifest accepted different BMS and WaveSplitter filenames.");
         }
 
         private static void AssertDuplicateDefinitionService()
