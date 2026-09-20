@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-using System.Windows.Forms;
 
 namespace Mid2BMS
 {
@@ -70,7 +69,7 @@ namespace Mid2BMS
                 formatnumber = ((formatnumber & 0x00FF) << 8) | ((formatnumber & 0xFF00) >> 8);
                 if (formatnumber != 1)
                 {
-                    MessageBox.Show("midi formatが1じゃないとか正直どうなの、まあ変換するけど\nExSMF 2.00(MISO氏作)とか使うと良いと思うよ（適当");
+                    CoreInteraction.ShowMessage("midi formatが1じゃないとか正直どうなの、まあ変換するけど\nExSMF 2.00(MISO氏作)とか使うと良いと思うよ（適当");
                 }
                 int trackcount_temp = fp.ReadByte();  // the number of tracks
                 trackcount_temp = (trackcount_temp << 8) + fp.ReadByte();

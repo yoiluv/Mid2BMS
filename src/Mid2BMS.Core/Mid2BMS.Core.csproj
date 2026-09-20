@@ -1,31 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>Mid2BMS.CharacterizationTests</RootNamespace>
-    <AssemblyName>Mid2BMS.CharacterizationTests</AssemblyName>
-    <ProjectGuid>{E2F97D6B-3C9B-4CD7-9AE7-C5A6A42BC9A7}</ProjectGuid>
-    <PlatformTarget>x86</PlatformTarget>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Mid2BMS</RootNamespace>
+    <AssemblyName>Mid2BMS.Core</AssemblyName>
+    <Platforms>x86</Platforms>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
-    <Platforms>x86</Platforms>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Mid2BMS\Mid2BMS.csproj" />
-    <ProjectReference Include="..\..\src\Mid2BMS.Core\Mid2BMS.Core.csproj" />
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <AutoGen>true</AutoGen>
+      <DesignTime>true</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

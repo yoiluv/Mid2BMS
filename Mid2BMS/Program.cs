@@ -16,6 +16,7 @@ namespace Mid2BMS
         [STAThread]
         static void Main()
         {
+            CoreInteraction.Current = new WinFormsCoreInteraction();
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 

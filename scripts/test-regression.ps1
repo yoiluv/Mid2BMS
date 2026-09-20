@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $buildScript = Join-Path $PSScriptRoot "build-legacy.ps1"
 $runnerPath = Join-Path $repositoryRoot "tests\Mid2BMS.CharacterizationTests\bin\Debug\Mid2BMS.CharacterizationTests.exe"
+$coreRunnerPath = Join-Path $repositoryRoot "tests\Mid2BMS.Core.Tests\bin\Debug\Mid2BMS.Core.Tests.exe"
 
 & $buildScript -Configuration Debug
 if ($LASTEXITCODE -ne 0) {
@@ -17,6 +18,11 @@ if ($LASTEXITCODE -ne 0) {
 $runnerArguments = @("--repository-root", $repositoryRoot)
 if ($Accept) {
     $runnerArguments += "--accept"
+}
+
+& $coreRunnerPath
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
 }
 
 & $runnerPath @runnerArguments

@@ -16,6 +16,7 @@ namespace Mid2BMS.CharacterizationTests
 
         private static int Main(string[] args)
         {
+            CoreInteraction.Current = new CharacterizationInteraction();
             bool accept = args.Any(x => String.Equals(x, "--accept", StringComparison.OrdinalIgnoreCase));
             string repositoryRoot = GetArgumentValue(args, "--repository-root") ?? FindRepositoryRoot();
             string fixturesRoot = Path.Combine(repositoryRoot, "tests", "fixtures");
@@ -95,6 +96,25 @@ namespace Mid2BMS.CharacterizationTests
                 Console.Error.WriteLine("- " + failure);
             }
             return 1;
+        }
+
+        private sealed class CharacterizationInteraction : ICoreInteraction
+        {
+            public void ShowMessage(string message)
+            {
+                Console.Error.WriteLine("Core notice: " + message);
+            }
+
+            public void ShowMessage(string message, string caption)
+            {
+                Console.Error.WriteLine("Core notice (" + caption + "): " + message);
+            }
+
+            public bool ConfirmAbort(string message, string caption)
+            {
+                Console.Error.WriteLine("Core confirmation (continuing): " + message);
+                return false;
+            }
         }
 
         private static void RunFixture(string fixtureName, string fixtureDirectory, string temporaryRoot, bool accept)

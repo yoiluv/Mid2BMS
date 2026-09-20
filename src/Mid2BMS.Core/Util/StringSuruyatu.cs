@@ -63,8 +63,8 @@ namespace Mid2BMS
             {
                 if (!messageshown)
                 {
-                    System.Windows.Forms.MessageBox.Show(e.ToString());
-                    System.Windows.Forms.MessageBox.Show(s2.ToString());
+                    CoreInteraction.ShowMessage(e.ToString());
+                    CoreInteraction.ShowMessage(s2.ToString());
                     messageshown = true;
                 }
             }

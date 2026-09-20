@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 
 namespace Mid2BMS
 {
@@ -33,7 +32,7 @@ namespace Mid2BMS
                     }
                     catch (Exception e)
                     {
-                        MessageBox.Show(
+                        CoreInteraction.ShowMessage(
                             "encoding.ini ファイルで指定されているエンコーディングが不正です。\n"+
                             "正しいエンコーディングに書き換えるか、該当ファイルを削除してください。\n\n" + e.ToString(),
                             "Invalid Text Encoding (see encoding.ini)");

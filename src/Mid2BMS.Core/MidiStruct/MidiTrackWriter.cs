@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 
 namespace Mid2BMS
 {
@@ -32,7 +31,7 @@ namespace Mid2BMS
 
             if (me.tick < 0)
             {
-                MessageBox.Show("だからなんでtickが負(" + me.tick + ")なのか");
+                CoreInteraction.ShowMessage("だからなんでtickが負(" + me.tick + ")なのか");
             }
 
             mt.Add(me);
