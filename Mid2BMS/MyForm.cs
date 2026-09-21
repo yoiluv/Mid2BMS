@@ -67,6 +67,27 @@ namespace Mid2BMS
             int newTimebase, int velocityStep,
             ref double ProgressBarValue, ref bool ProgressBarFinished)
         {
+            IReadOnlyList<bool> countSource = isDrumsList ?? ignoreList ?? isChordList ?? isXChainList ?? isOneShotList;
+            IReadOnlyList<TrackSettings> trackSettings = countSource == null ? null :
+                TrackSettings.FromLegacyFlags(countSource.Count,
+                    TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode),
+                    isDrumsList, ignoreList, isChordList, isXChainList, isOneShotList);
+            Mid2BMS_Process(isRedMode, isPurpleMode, createExFiles,
+                ref VacantWavid, ref DefaultVacantBMSChannelIdx,
+                LookAtInstrumentName, margintime_beats, WavidSpacing,
+                out trackCsv, ref MidiTrackNames, out MidiInstrumentNames,
+                trackSettings, sequenceLayer, newTimebase, velocityStep,
+                ref ProgressBarValue, ref ProgressBarFinished);
+        }
+
+        public void Mid2BMS_Process(
+            bool isRedMode, bool isPurpleMode, bool createExFiles, ref int VacantWavid, ref int DefaultVacantBMSChannelIdx,
+            bool LookAtInstrumentName, String margintime_beats, int WavidSpacing,
+            out String trackCsv, ref List<String> MidiTrackNames, out List<String> MidiInstrumentNames,
+            IReadOnlyList<TrackSettings> trackSettings, bool sequenceLayer,
+            int newTimebase, int velocityStep,
+            ref double ProgressBarValue, ref bool ProgressBarFinished)
+        {
             #region ファイルの更新チェック
             if (!Mid2BMS_CheckHash())  // TODO: 不要なコードの削除or修正
             {
@@ -84,7 +105,7 @@ namespace Mid2BMS
                 isRedMode, isPurpleMode, createExFiles, ref VacantWavid, ref DefaultVacantBMSChannelIdx,
                 LookAtInstrumentName, margintime_beats, WavidSpacing,
                 out trackCsv, ref MidiTrackNames, out MidiInstrumentNames,
-                isDrumsList, ignoreList, isChordList, isXChainList, isOneShotList, sequenceLayer,
+                trackSettings, sequenceLayer,
                 newTimebase, velocityStep,
                 ref ProgressBarValue, ref ProgressBarFinished);
         }

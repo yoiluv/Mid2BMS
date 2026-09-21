@@ -33,7 +33,7 @@ namespace Mid2BMS
         /// MMLデータ(text0_stdout_part1.mml)を受け取り、text1～text8 他を生成します。
         /// </summary>
         public int MultiProcess(List<String> MMLs_, List<String> MidiTrackNames_,
-            List<bool> isDrumsList, List<bool> ignoreList, List<bool> isChordList, List<bool> isXChainList, List<bool> isOneShotList, bool sequenceLayer, String pathBase,
+            IReadOnlyList<TrackSettings> trackSettings, bool sequenceLayer, String pathBase,
             bool isRedMode, bool isPurpleMode, bool createExFiles, ref int VacantWavid, int timebase,
             String margintime_beats, out String trackCsv, out List<bool> isEmptyList, decimal bpm,
             ref double progressValue, double progressMin, double progressMax)
@@ -102,14 +102,15 @@ namespace Mid2BMS
                 try
                 {
 
-                    // ArrayかList<>かIEnumerableかで迷ったら、とりあえずList使っとけばいいみたいなのはある
-                    bool isDrums = (isDrumsList == null) ? false : isDrumsList[i];
+                    TrackSettings settings = trackSettings[i];
+                    bool trackIsRedMode = settings.Mode == TrackMode.Red;
+                    bool trackIsPurpleMode = settings.Mode == TrackMode.Purple;
+                    bool isDrums = settings.IsDrums;
                     //progressValue = progressMin + (progressMax - progressMin) * i / mml_multi.Length;
-                    bool xchainChecked = (isXChainList == null) ? false : isXChainList[i];
-                    bool ignoreChecked = (ignoreList == null) ? false : ignoreList[i];
-                    bool ignore = ignoreChecked || (isRedMode && sequenceLayer && xchainChecked);  // BMSおよびrenamer_array（およびpurpleまたはblueの場合はmidi）を出力するかどうか
-                    bool isChordMode = (isChordList == null) ? false : isChordList[i];
-                    bool isOneShot = (isOneShotList == null) ? false : isOneShotList[i];
+                    bool ignore = settings.Ignore ||
+                        (trackIsRedMode && sequenceLayer && settings.IsXChain);
+                    bool isChordMode = settings.IsChord;
+                    bool isOneShot = settings.IsOneShot;
                     
                     if (ignore)
                     {
@@ -120,7 +121,7 @@ namespace Mid2BMS
                     if (!sequenceLayer) midiTime = new Frac(4);
 
                     Process(i, (i < MidiTrackNames.Count) ? MidiTrackNames[i] : "MidiTrack " + (i + 1), MMLs[i], pathBase, text, tanon_ms,
-                        0, 0, isRedMode, isPurpleMode, isDrums, isChordMode, isOneShot,
+                        0, 0, trackIsRedMode, trackIsPurpleMode, isDrums, isChordMode, isOneShot,
                         out isEmpty, midiTime, ref VacantWavid, timebase, margintime_beats,
                         ref progressValue,
                         progressMin + (progressMax - progressMin) * i / MMLs.Count,
@@ -261,7 +262,7 @@ namespace Mid2BMS
                 : (isRedMode ? mi3.ntm : mi3.nta)
                     .Select(note => (IReadOnlyList<MNote>)new[] { note }).ToArray();
             KeySoundTrack keySoundTrack = Manifest.AddGeneratedTrack(TrackIndex,
-                isRedMode ? KeySoundMode.Red : isPurpleMode ? KeySoundMode.Purple : KeySoundMode.Blue,
+                isRedMode ? TrackMode.Red : isPurpleMode ? TrackMode.Purple : TrackMode.Blue,
                 isChordMode, isOneShot, VacantWavid, nw.wavnms, outInArray, identities);
 
 

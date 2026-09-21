@@ -22,7 +22,7 @@ namespace Mid2BMS
             this.disambiguateTrackName = disambiguateTrackName;
         }
 
-        private string Name(int namingway, string trackName, KeySoundMode mode, int index,
+        private string Name(int namingway, string trackName, TrackMode mode, int index,
             bool isChord, bool isOneShot, IReadOnlyList<MNote> notes, string prefix, string suffix)
         {
             var identity = notes.Select(KeySoundNoteIdentity.FromMNote).ToArray();
@@ -68,7 +68,7 @@ namespace Mid2BMS
 
             for (i = 0; i < ntantmC.Count; i++)
             {
-                KeySoundMode mode = isRedMode ? KeySoundMode.Red : KeySoundMode.Blue;
+                TrackMode mode = isRedMode ? TrackMode.Red : TrackMode.Blue;
                 wavnms.Add(Name(namingway, ib, mode, i, true, false, ntantmC[i], bb, ba));
                 w = Name(namingway, ib, mode, i, true, false, ntantmC[i], ob, oa);
                 s2.Append(w + "\r\n");
@@ -118,8 +118,8 @@ namespace Mid2BMS
                 for (i = 0; i < ntantm.Count; i++)
                 {
                     var note = new[] { ntantm[i] };
-                    wavnms.Add(Name(namingway, ib, KeySoundMode.Blue, i, false, isOneShot, note, bb, ba));
-                    w = Name(namingway, ib, KeySoundMode.Blue, i, false, isOneShot, note, ob, oa);
+                    wavnms.Add(Name(namingway, ib, TrackMode.Blue, i, false, isOneShot, note, bb, ba));
+                    w = Name(namingway, ib, TrackMode.Blue, i, false, isOneShot, note, ob, oa);
                     s2.Append(w + "\r\n");
                 }
             }
@@ -128,8 +128,8 @@ namespace Mid2BMS
                 for (i = 0; i < ntantm.Count; i++)
                 {
                     var note = new[] { ntantm[i] };
-                    wavnms.Add(Name(namingway, ib, KeySoundMode.Purple, i, false, isOneShot, note, bb, ba));
-                    w = Name(namingway, ib, KeySoundMode.Purple, i, false, isOneShot, note, ob, oa);
+                    wavnms.Add(Name(namingway, ib, TrackMode.Purple, i, false, isOneShot, note, bb, ba));
+                    w = Name(namingway, ib, TrackMode.Purple, i, false, isOneShot, note, ob, oa);
 
                     // previous note
                     s2.Append("____dummy_" + w + "\r\n");
@@ -143,8 +143,8 @@ namespace Mid2BMS
                 for (i = 0; i < ntantm.Count; i++)
                 {
                     var note = new[] { ntantm[i] };
-                    wavnms.Add(Name(namingway, ib, KeySoundMode.Red, i, false, isOneShot, note, bb, ba));
-                    w = Name(namingway, ib, KeySoundMode.Red, i, false, isOneShot, note, ob, oa);
+                    wavnms.Add(Name(namingway, ib, TrackMode.Red, i, false, isOneShot, note, bb, ba));
+                    w = Name(namingway, ib, TrackMode.Red, i, false, isOneShot, note, ob, oa);
                     s2.Append(w + "\r\n");
                 }
             }

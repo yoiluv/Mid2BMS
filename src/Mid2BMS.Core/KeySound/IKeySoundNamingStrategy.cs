@@ -6,7 +6,7 @@ namespace Mid2BMS
     internal sealed record KeySoundContext(
         int NamingWay,
         string TrackName,
-        KeySoundMode Mode,
+        TrackMode Mode,
         int IndexWithinTrack,
         bool IsChord,
         bool IsOneShot,
@@ -39,13 +39,13 @@ namespace Mid2BMS
                 KeySoundNoteIdentity note = context.Notes[0];
                 if (context.NamingWay == 0)
                 {
-                    stem = context.Mode == KeySoundMode.Red
+                    stem = context.Mode == TrackMode.Red
                         ? String.Format("{0:D5}_", context.IndexWithinTrack + 1) : "";
                     stem += "v" + note.Velocity
                         + (context.IsOneShot ? "" : ("l" + note.LengthDenominator
                             + (note.LengthNumerator == 1 ? "" : ("-" + note.LengthNumerator))))
                         + "o" + (note.NoteNumber / 12) + GetNoteHeight(note.NoteNumber);
-                    if (context.Mode == KeySoundMode.Purple)
+                    if (context.Mode == TrackMode.Purple)
                     {
                         int previousNote = note.PreviousNoteNumber.Value;
                         stem += "-o" + (previousNote / 12) + GetNoteHeight(previousNote);
