@@ -12,7 +12,10 @@ namespace Mid2BMS
         bool IsOneShot,
         IReadOnlyList<KeySoundNoteIdentity> Notes,
         string Prefix,
-        string Suffix);
+        string Suffix,
+        int TrackId = 0,
+        int GlobalIndex = 1,
+        bool DisambiguateTrackName = false);
 
     internal interface IKeySoundNamingStrategy
     {

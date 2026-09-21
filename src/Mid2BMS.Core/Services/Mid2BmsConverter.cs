@@ -10,11 +10,13 @@ namespace Mid2BMS
     {
         private readonly string PathBase;
         private readonly string FileName_MidiFile;
+        private readonly IKeySoundNamingStrategy namingStrategy;
 
-        public Mid2BmsConverter(string pathBase, string midiFileName)
+        public Mid2BmsConverter(string pathBase, string midiFileName, IKeySoundNamingStrategy namingStrategy = null)
         {
             PathBase = pathBase;
             FileName_MidiFile = midiFileName;
+            this.namingStrategy = namingStrategy ?? new LegacyKeySoundNamingStrategy();
         }
 
         public void Run(
@@ -223,6 +225,7 @@ namespace Mid2BMS
             MelodyWalker mw = new MelodyWalker();
             mw.VacantBMSChannelIdx = DefaultVacantBMSChannelIdx;
             mw.WavidSpacing = WavidSpacing;
+            mw.NamingStrategy = namingStrategy;
             mw.MultiProcess(MMLs, MidiTrackIdentifier, isDrumsList, ignoreList, isChordList, isXChainList, isOneShotList, sequenceLayer, PathBase,
                 isRedMode, isPurpleMode, createExFiles, ref VacantWavid, timebase, margintime_beats, out trackCsv, out isEmptyList, midi_bpm,
                 ref ProgressBarValue, 0.10, 1.00);
