@@ -78,6 +78,7 @@ namespace Mid2BMS.CharacterizationTests
                     RunNamingScenario(fixturesRoot, temporaryRoot, "blue_basic",
                         new TrackSequentialKeySoundNamingStrategy(), "track_sequential_duplicate",
                         false, false, failures, duplicateTrackNames: true);
+                    RunMixedModeScenario(fixturesRoot, temporaryRoot, failures);
                 }
 
                 // Generate every fixture successfully before replacing any checked-in baseline.
@@ -138,7 +139,7 @@ namespace Mid2BMS.CharacterizationTests
         private static string RunFixture(string fixtureName, string fixtureDirectory, string temporaryRoot, bool accept,
             IKeySoundNamingStrategy namingStrategy = null, string workName = null, bool compareGolden = true,
             int? startingWavId = null, int? wavidSpacing = null, bool duplicateTrackNames = false,
-            bool useTrackSettings = false)
+            bool useTrackSettings = false, IReadOnlyList<TrackMode> trackModes = null)
         {
             IDictionary<string, string> settings = ReadSettings(Path.Combine(fixtureDirectory, SettingsFileName));
             string sourceInputPath = Path.Combine(fixtureDirectory, InputFileName);
@@ -190,6 +191,15 @@ namespace Mid2BMS.CharacterizationTests
             IReadOnlyList<TrackSettings> trackSettings = TrackSettings.FromLegacyFlags(trackCount,
                 TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode),
                 isDrumsList, null, isChordList, isXChainList, isOneShotList);
+            if (trackModes != null)
+            {
+                if (trackModes.Count != trackCount)
+                    throw new InvalidDataException("Track mode count differs from the MIDI track count.");
+                trackSettings = trackSettings.Select((value, index) => value with
+                {
+                    Mode = trackModes[index],
+                }).ToArray();
+            }
             if (useTrackSettings)
             {
                 target.Mid2BMS_Process(isRedMode, isPurpleMode, ParseBool(settings, "createExtraFiles"),
@@ -335,6 +345,75 @@ namespace Mid2BMS.CharacterizationTests
                         !File.Exists(Path.Combine(workDirectory, "renamed", waveNames[0])))
                         throw new InvalidDataException("WaveSplitter did not write the BMS-defined sequential filename.");
                 }
+
+                Console.WriteLine("PASSED    " + scenarioName);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(scenarioName + ": " + exception.Message);
+                Console.Error.WriteLine("FAILED   " + scenarioName);
+                Console.Error.WriteLine(exception.ToString());
+            }
+        }
+
+        private static void RunMixedModeScenario(string fixturesRoot, string temporaryRoot,
+            List<string> failures)
+        {
+            const string scenarioName = "mixed_blue_purple";
+            try
+            {
+                TrackMode[] modes =
+                {
+                    TrackMode.Blue,
+                    TrackMode.Blue,
+                    TrackMode.Purple,
+                    TrackMode.Blue,
+                    TrackMode.Purple,
+                };
+                string workDirectory = RunFixture("blue_basic", Path.Combine(fixturesRoot, "blue_basic"),
+                    temporaryRoot, false, workName: scenarioName, compareGolden: false,
+                    useTrackSettings: true, trackModes: modes);
+
+                string bmsPath = Path.Combine(workDirectory, "text6_bms_blue_purple.txt");
+                string midiPath = Path.Combine(workDirectory, "text3_tanon_smf_blue_purple.mid");
+                if (!File.Exists(bmsPath) || !File.Exists(midiPath))
+                    throw new InvalidDataException("Mixed-mode BMS or single-note MIDI output is missing.");
+                if (Directory.GetFiles(workDirectory, "text6_bms_blue.txt").Any() ||
+                    Directory.GetFiles(workDirectory, "text6_bms_purple.txt").Any())
+                    throw new InvalidDataException("Mixed-mode conversion used a legacy single-mode output name.");
+
+                KeySoundManifest manifest = KeySoundManifest.FromLegacyRenamerText(
+                    FileIO.ReadAllText(Path.Combine(workDirectory, "text5_renamer_array.txt")));
+                KeySoundTrack[] tracks = manifest.Tracks.ToArray();
+                if (tracks.Length != 4)
+                    throw new InvalidDataException("Mixed-mode scenario did not produce four musical tracks.");
+
+                using (var stream = new FileStream(midiPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var midi = new MidiStruct(stream, true);
+                    if (midi.tracks.Count != modes.Length)
+                        throw new InvalidDataException("Mixed-mode MIDI track count changed.");
+
+                    for (int index = 0; index < tracks.Length; index++)
+                    {
+                        TrackMode expectedMode = modes[index + 1];
+                        KeySoundTrack track = tracks[index];
+                        string[] slots = track.ToLegacyRow().Skip(3).ToArray();
+                        int expectedSlotCount = track.KeySounds.Count *
+                            (expectedMode == TrackMode.Purple ? 2 : 1);
+                        if (slots.Length != expectedSlotCount)
+                            throw new InvalidDataException("Mixed-mode WaveSplitter slots do not match track mode.");
+                        if (track.KeySounds.Any(key => !key.FileName.StartsWith(
+                            expectedMode == TrackMode.Purple ? "p_" : "b_", StringComparison.Ordinal)))
+                            throw new InvalidDataException("Mixed-mode key sound prefix does not match track mode.");
+                        if (midi.tracks[index + 1].OfType<MidiEventNote>().Count() != expectedSlotCount)
+                            throw new InvalidDataException("Mixed-mode MIDI notes do not match WaveSplitter slots.");
+                    }
+                }
+
+                string bms = FileIO.ReadAllText(bmsPath);
+                if (!bms.Contains("#WAV") || !bms.Contains(" b_") || !bms.Contains(" p_"))
+                    throw new InvalidDataException("Mixed-mode BMS does not contain both Blue and Purple WAV definitions.");
 
                 Console.WriteLine("PASSED    " + scenarioName);
             }

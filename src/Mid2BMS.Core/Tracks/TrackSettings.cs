@@ -48,11 +48,11 @@ namespace Mid2BMS
             }).ToArray();
         }
 
-        internal static IReadOnlyList<TrackSettings> NormalizeForGlobalMode(int trackCount,
-            TrackMode globalMode, IReadOnlyList<TrackSettings> settings)
+        internal static IReadOnlyList<TrackSettings> NormalizeForConversion(int trackCount,
+            TrackMode legacyGlobalMode, IReadOnlyList<TrackSettings> settings, bool sequenceLayer)
         {
             if (settings == null)
-                return FromLegacyFlags(trackCount, globalMode, null, null, null, null, null);
+                return FromLegacyFlags(trackCount, legacyGlobalMode, null, null, null, null, null);
             if (settings.Count != trackCount)
                 throw new ArgumentException("TrackSettings count must match the MIDI track count.", nameof(settings));
 
@@ -61,10 +61,23 @@ namespace Mid2BMS
             {
                 if (result[i] == null)
                     throw new ArgumentException("TrackSettings contains null at track " + i + ".", nameof(settings));
-                if (result[i].Mode != globalMode)
-                    throw new NotSupportedException("Per-track mode mixing is introduced in Phase 11. "
-                        + "Track " + i + " differs from the current global mode.");
+                if (!Enum.IsDefined(typeof(TrackMode), result[i].Mode))
+                    throw new ArgumentException("TrackSettings contains an invalid mode at track " + i + ".", nameof(settings));
             }
+
+            bool hasBlue = result.Any(x => x.Mode == TrackMode.Blue);
+            bool hasPurple = result.Any(x => x.Mode == TrackMode.Purple);
+            bool hasRed = result.Any(x => x.Mode == TrackMode.Red);
+
+            if (hasRed && (hasBlue || hasPurple || legacyGlobalMode != TrackMode.Red))
+                throw new NotSupportedException("Red mode cannot be mixed with Blue or Purple until Phase 12.");
+            if (!hasRed && legacyGlobalMode == TrackMode.Red)
+                throw new NotSupportedException("A legacy Red-mode request must use Red TrackSettings until Phase 12.");
+            if (hasBlue && hasPurple && sequenceLayer)
+                throw new NotSupportedException("Blue/Purple mixing with SequenceLayer is introduced in Phase 12.");
+            if (hasBlue && hasPurple && result.Any(x => x.Mode == TrackMode.Purple && x.IsChord))
+                throw new ArgumentException("Purple tracks cannot use Chord mode.", nameof(settings));
+
             return Array.AsReadOnly(result);
         }
 

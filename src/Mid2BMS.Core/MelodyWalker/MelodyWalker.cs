@@ -34,7 +34,7 @@ namespace Mid2BMS
         /// </summary>
         public int MultiProcess(List<String> MMLs_, List<String> MidiTrackNames_,
             IReadOnlyList<TrackSettings> trackSettings, bool sequenceLayer, String pathBase,
-            bool isRedMode, bool isPurpleMode, bool createExFiles, ref int VacantWavid, int timebase,
+            bool createExFiles, ref int VacantWavid, int timebase,
             String margintime_beats, out String trackCsv, out List<bool> isEmptyList, decimal bpm,
             ref double progressValue, double progressMin, double progressMax)
         {
@@ -160,7 +160,8 @@ namespace Mid2BMS
                 }
             }
 
-            String BMSFileName = isRedMode ? @"text6_bms_red.txt" : (isPurpleMode ? @"text6_bms_purple.txt" : @"text6_bms_blue.txt");
+            string modeSuffix = GetModeSuffix(trackSettings);
+            String BMSFileName = @"text6_bms_" + modeSuffix + @".txt";
             if (!(NamingStrategy is LegacyKeySoundNamingStrategy)) Manifest.AssertUniqueOutputFileNames();
             FileIO.WriteAllText(pathBase + @"text5_renamer_array.txt", Manifest.ToLegacyRenamerText());
             FileIO.WriteAllText(pathBase + BMSFileName, text[5]);
@@ -176,15 +177,25 @@ namespace Mid2BMS
                 //FileStreamFactory.WriteAllText(pathBase + @"text8_errorlog_debug.txt", text[7]);
             }
 
-            if (!isRedMode)
+            if (!trackSettings.Any(x => x.Mode == TrackMode.Red))
             {
-                String tanon_smf_filename = @"text3_tanon_smf" + (isPurpleMode ? "_purple" : "_blue") + @".mid";
+                String tanon_smf_filename = @"text3_tanon_smf_" + modeSuffix + @".mid";
                 tanon_ms.Export(neu.IFileStream(pathBase + tanon_smf_filename, FileMode.Create, FileAccess.Write), true);
             }
 
             trackCsv = text[8];
             return 0;
         }
+
+        private static string GetModeSuffix(IReadOnlyList<TrackSettings> trackSettings)
+        {
+            bool hasBlue = trackSettings.Any(x => x.Mode == TrackMode.Blue);
+            bool hasPurple = trackSettings.Any(x => x.Mode == TrackMode.Purple);
+            if (trackSettings.Any(x => x.Mode == TrackMode.Red)) return "red";
+            if (hasBlue && hasPurple) return "blue_purple";
+            return hasPurple ? "purple" : "blue";
+        }
+
         public int Process(int TrackIndex, String MidiTrackName, String mml, String pathBase, StringSuruyatu[] text, MidiStruct tanon_ms,
             int channel, int wavid, bool isRedMode, bool isPurpleMode,
             bool isDrums, bool isChordMode, bool isOneShot, out bool isEmpty, Frac midiTime, ref int VacantWavid, int timebase, String margintime_beats,

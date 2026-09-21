@@ -374,25 +374,34 @@ namespace Mid2BMS.Core.Tests
                 "Legacy track flags were not mapped into TrackSettings.");
 
             IReadOnlyList<TrackSettings> defaults =
-                TrackSettings.NormalizeForGlobalMode(3, TrackMode.Blue, null);
+                TrackSettings.NormalizeForConversion(3, TrackMode.Blue, null, false);
             Assert(defaults.Count == 3 && defaults.All(x => x.Mode == TrackMode.Blue) &&
                 defaults.All(x => !x.IsDrums && !x.IsChord && !x.IsOneShot && !x.IsXChain && !x.Ignore),
                 "Default TrackSettings changed legacy defaults.");
 
-            bool rejected = false;
-            try
+            IReadOnlyList<TrackSettings> mixed = TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
             {
-                TrackSettings.NormalizeForGlobalMode(2, TrackMode.Blue, new[]
-                {
-                    new TrackSettings { Mode = TrackMode.Blue },
-                    new TrackSettings { Mode = TrackMode.Purple },
-                });
-            }
-            catch (NotSupportedException)
+                new TrackSettings { Mode = TrackMode.Blue },
+                new TrackSettings { Mode = TrackMode.Purple },
+            }, false);
+            Assert(mixed[0].Mode == TrackMode.Blue && mixed[1].Mode == TrackMode.Purple,
+                "Phase 11 rejected Blue/Purple per-track mode mixing.");
+
+            AssertThrows<NotSupportedException>(() => TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
             {
-                rejected = true;
-            }
-            Assert(rejected, "Phase 10 accepted mixed per-track modes before Phase 11.");
+                new TrackSettings { Mode = TrackMode.Blue },
+                new TrackSettings { Mode = TrackMode.Red },
+            }, false), "Phase 11 accepted Red mode mixing.");
+            AssertThrows<NotSupportedException>(() => TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
+            {
+                new TrackSettings { Mode = TrackMode.Blue },
+                new TrackSettings { Mode = TrackMode.Purple },
+            }, true), "Phase 11 accepted Blue/Purple mixing with SequenceLayer.");
+            AssertThrows<ArgumentException>(() => TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
+            {
+                new TrackSettings { Mode = TrackMode.Blue },
+                new TrackSettings { Mode = TrackMode.Purple, IsChord = true },
+            }, false), "Phase 11 accepted Chord mode on a Purple track.");
         }
 
         private static string NewTemporaryDirectory()
@@ -405,6 +414,19 @@ namespace Mid2BMS.Core.Tests
         private static void Assert(bool condition, string message)
         {
             if (!condition) throw new InvalidOperationException(message);
+        }
+
+        private static void AssertThrows<TException>(Action action, string message) where TException : Exception
+        {
+            try
+            {
+                action();
+            }
+            catch (TException)
+            {
+                return;
+            }
+            throw new InvalidOperationException(message);
         }
 
         private sealed class RecordingInteraction : ICoreInteraction
