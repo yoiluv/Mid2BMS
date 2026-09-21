@@ -23,7 +23,7 @@ namespace Mid2BMS
             bool isRedMode, bool isPurpleMode, bool createExFiles, ref int VacantWavid, ref int DefaultVacantBMSChannelIdx,
             bool LookAtInstrumentName, String margintime_beats, int WavidSpacing,
             out String trackCsv, ref List<String> MidiTrackNames, out List<String> MidiInstrumentNames,
-            List<bool> isDrumsList, List<bool> ignoreList, List<bool> isChordList, List<bool> isXChainList, List<bool> isOneShotList, bool sequenceLayer,
+            IReadOnlyList<TrackSettings> trackSettings, bool sequenceLayer,
             int newTimebase, int velocityStep,
             ref double ProgressBarValue, ref bool ProgressBarFinished)
         {
@@ -188,6 +188,10 @@ namespace Mid2BMS
             m2m.Process(quantizedMidiStreamGenerator(), PathBase + @"text0_stdout_part1.txt", out MMLs,
                 out MidiTrackNames, out MidiInstrumentNames, createExFiles, ref ProgressBarValue, 0.00, 0.10);
 
+            TrackMode globalMode = TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode);
+            IReadOnlyList<TrackSettings> normalizedTrackSettings =
+                TrackSettings.NormalizeForGlobalMode(MMLs.Count, globalMode, trackSettings);
+
             if (MidiTrackIdentifier == null)
             {
                 // nullが与えられた場合はmidiファイルから読み込んだデータを用いる
@@ -226,7 +230,7 @@ namespace Mid2BMS
             mw.VacantBMSChannelIdx = DefaultVacantBMSChannelIdx;
             mw.WavidSpacing = WavidSpacing;
             mw.NamingStrategy = namingStrategy;
-            mw.MultiProcess(MMLs, MidiTrackIdentifier, isDrumsList, ignoreList, isChordList, isXChainList, isOneShotList, sequenceLayer, PathBase,
+            mw.MultiProcess(MMLs, MidiTrackIdentifier, normalizedTrackSettings, sequenceLayer, PathBase,
                 isRedMode, isPurpleMode, createExFiles, ref VacantWavid, timebase, margintime_beats, out trackCsv, out isEmptyList, midi_bpm,
                 ref ProgressBarValue, 0.10, 1.00);
             #endregion
@@ -270,14 +274,11 @@ namespace Mid2BMS
                 MidiTrack.SPLIT_BEATS_AUTOMATIONLEFT = 2;
                 MidiTrack.SPLIT_BEATS_AUTOMATIONRIGHT = margintime_beats_int + 0;
 
-                if (ignoreList != null)
+                for (int trid = 0; trid < normalizedTrackSettings.Count; trid++)
                 {
-                    for (int trid = 0; trid < ignoreList.Count; trid++)
+                    if (normalizedTrackSettings[trid].Ignore)
                     {
-                        if (ignoreList[trid])
-                        {
-                            ms2.tracks[trid] = new MidiTrack(ms2.tracks[trid].Where(x => !(x is MidiEventNote)));
-                        }
+                        ms2.tracks[trid] = new MidiTrack(ms2.tracks[trid].Where(x => !(x is MidiEventNote)));
                     }
                 }
 
@@ -285,7 +286,7 @@ namespace Mid2BMS
                 {
                     for (int i = 1; i < ms2.tracks.Count; i++)  // 1から処理
                     {
-                        bool isChordMode = (isChordList == null ? false : isChordList[i]);
+                        bool isChordMode = normalizedTrackSettings[i].IsChord;
                         ms2.tracks[i] = ms2.tracks[i].SplitNotes(ms2, isChordMode);  // コンダクタートラックはそのままにする(主にテンポ保持のため)
                     }
                 }
@@ -296,6 +297,8 @@ namespace Mid2BMS
                     try
                     {
                         var directsum = MidiTrack.DirectSum(ms2.tracks);
+                        List<bool> isChordList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsChord);
+                        List<bool> isXChainList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsXChain);
                         var splitted = MidiTrack.SplitNotes(directsum, ms2, isChordList, isXChainList);
                         ms2.tracks = MidiTrack.DirectDifference(splitted);
                     }

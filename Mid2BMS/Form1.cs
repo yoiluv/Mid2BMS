@@ -153,11 +153,7 @@ namespace Mid2BMS
             String trackCsv = null;
             List<String> MidiTrackNames = null;
             List<String> MidiInstrumentNames = null;
-            List<bool> isDrumsList = null;
-            List<bool> ignoreList = null;
-            List<bool> isChordList = null;
-            List<bool> isXChainList = null;
-            List<bool> isOneShotList = null;
+            IReadOnlyList<TrackSettings> trackSettings = null;
 
             if (newtimebase > 1000)
             {
@@ -191,7 +187,7 @@ namespace Mid2BMS
                 MyFormInstance.Mid2BMS_Process(
                     isRedMode, isPurpleMode, createExFiles, ref VacantWavid, ref DefVacantBMSChIdx,
                     LookAtInstrumentName, margintime_beats, WavidSpacing, out trackCsv, ref MidiTrackNames, out MidiInstrumentNames,
-                    isDrumsList, ignoreList, isChordList, isXChainList, isOneShotList, sequenceLayer, newtimebase, velocityStep,
+                    trackSettings, sequenceLayer, newtimebase, velocityStep,
                     ref ProgressBarValue, ref ProgressBarFinished);
 
             InitializeProgressBar();  // これを実行したら必ずanotherThreadが走るようにする
@@ -233,11 +229,6 @@ namespace Mid2BMS
                                     f.TrackName_csv = trackCsv;
                                     f.TrackNames = MidiTrackNames;
                                     f.InstrumentNames = MidiInstrumentNames;
-                                    f.IsDrumsList = null;
-                                    f.IgnoreList = null;
-                                    f.IsChordList = null;
-                                    f.IsOneShotList = null;
-                                    f.IsXChainList = null;
                                     f.SetMode(sequenceLayer, isRedMode, isPurpleMode);
                                 }
                                 f.ShowDialog(this);
@@ -247,11 +238,7 @@ namespace Mid2BMS
                                     VacantWavid = BMSParser.IntFromHex36(textBox_vacantWavid.Text);
                                     DefVacantBMSChIdx = checkBox_NoPlace11to29.Checked ? 16 : 0;
                                     MidiTrackNames = f.TrackNames;  // フォーム2から値を受け取る
-                                    isDrumsList = f.IsDrumsList;
-                                    ignoreList = f.IgnoreList;
-                                    isChordList = f.IsChordList;
-                                    isXChainList = f.IsXChainList;
-                                    isOneShotList = f.IsOneShotList;
+                                    trackSettings = f.TrackSettings;
                                     f.Dispose();
 
                                     this.Invoke(new Action(() => InitializeProgressBar()), new object[] { });

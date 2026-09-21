@@ -38,6 +38,8 @@ namespace Mid2BMS
         [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<String> InstrumentNames { get; set; }
         [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public IReadOnlyList<TrackSettings> TrackSettings { get; private set; }
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IsDrumsList { get; set; }
         [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public List<bool> IgnoreList { get; set; }
@@ -124,6 +126,8 @@ namespace Mid2BMS
                 IsChordList = new List<bool>(new bool[TrackNames.Count]);
                 IsXChainList = new List<bool>(new bool[TrackNames.Count]);
                 IsOneShotList = new List<bool>(new bool[TrackNames.Count]);
+                var settings = Enumerable.Range(0, TrackNames.Count)
+                    .Select(_ => new TrackSettings { Mode = GetGlobalTrackMode() }).ToArray();
 
                 for (int i = 0; i < data_table.Rows.Count; i++)
                 {
@@ -134,7 +138,17 @@ namespace Mid2BMS
                     IsChordList[tracknumber] = (bool)data_table.Rows[i][8];
                     IgnoreList[tracknumber] = (bool)data_table.Rows[i][9];
                     IsXChainList[tracknumber] = (bool)data_table.Rows[i][10];
+                    settings[tracknumber] = new TrackSettings
+                    {
+                        Mode = GetGlobalTrackMode(),
+                        IsDrums = IsDrumsList[tracknumber],
+                        IsOneShot = IsOneShotList[tracknumber],
+                        IsChord = IsChordList[tracknumber],
+                        Ignore = IgnoreList[tracknumber],
+                        IsXChain = IsXChainList[tracknumber],
+                    };
                 }
+                TrackSettings = Array.AsReadOnly(settings);
 
                 //######## フォームを閉じる ########
                 this.Close();
@@ -166,6 +180,11 @@ namespace Mid2BMS
         private void Form2_Load(object sender, EventArgs e)
         {
             SetTable(false);
+        }
+
+        private TrackMode GetGlobalTrackMode()
+        {
+            return Mid2BMS.TrackSettings.FromLegacyGlobalMode(IsRedMode, IsPurpleMode);
         }
         private void SetTable(bool showDetail) {
             // ん、datagridとdatagridviewって違うのか

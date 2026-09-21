@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,6 +22,7 @@ namespace Mid2BMS.Core.Tests
                 AssertLegacyKeySoundNaming();
                 AssertSequentialKeySoundNaming();
                 AssertKeySoundManifest();
+                AssertTrackSettingsCompatibility();
                 AssertWaveSplitService();
                 AssertDuplicateDefinitionService();
                 Console.WriteLine("Core isolation tests passed.");
@@ -193,7 +194,7 @@ namespace Mid2BMS.Core.Tests
         {
             var strategy = new LegacyKeySoundNamingStrategy();
             var note = new MNote(60, 2, 3, 99);
-            var context = new KeySoundContext(0, "Piano", KeySoundMode.Blue, 0,
+            var context = new KeySoundContext(0, "Piano", TrackMode.Blue, 0,
                 false, false, new[] { KeySoundNoteIdentity.FromMNote(note) }, "b_Piano_", ".wav");
             Assert(strategy.GetFileName(context) == "b_Piano_v99l3-2o5c.wav",
                 "Legacy blue naming changed.");
@@ -212,13 +213,13 @@ namespace Mid2BMS.Core.Tests
             }
             Assert(strategy.GetFileName(context with { NamingWay = 99 }) == "b_Piano_NULL.wav",
                 "Legacy reserved naming way changed.");
-            Assert(strategy.GetFileName(context with { Mode = KeySoundMode.Red, IndexWithinTrack = 4,
+            Assert(strategy.GetFileName(context with { Mode = TrackMode.Red, IndexWithinTrack = 4,
                 Prefix = "r_Piano_" }) == "r_Piano_00005_v99l3-2o5c.wav",
                 "Legacy red naming changed.");
 
             var previous = new MNote(59, 1, 4, 80);
             var purpleNote = new MNote(note, previous);
-            Assert(strategy.GetFileName(context with { Mode = KeySoundMode.Purple,
+            Assert(strategy.GetFileName(context with { Mode = TrackMode.Purple,
                 Prefix = "p_Piano_", Notes = new[] { KeySoundNoteIdentity.FromMNote(purpleNote) } })
                 == "p_Piano_v99l3-2o5c-o4b.wav", "Legacy purple naming changed.");
             Assert(strategy.GetFileName(context with { IsChord = true,
@@ -238,7 +239,7 @@ namespace Mid2BMS.Core.Tests
         private static void AssertSequentialKeySoundNaming()
         {
             var note = new MNote(60, 1, 4, 80);
-            var context = new KeySoundContext(0, "Kick", KeySoundMode.Blue, 0, false, false,
+            var context = new KeySoundContext(0, "Kick", TrackMode.Blue, 0, false, false,
                 new[] { KeySoundNoteIdentity.FromMNote(note) }, "b_Kick_", ".wav", 2, 1);
             var sequential = new SequentialKeySoundNamingStrategy();
             Assert(sequential.GetFileName(context) == "0001.wav" &&
@@ -272,12 +273,12 @@ namespace Mid2BMS.Core.Tests
             var manifest = new KeySoundManifest();
             var note = new MNote(60, 1, 4, 80);
             const string blueRow = "Piano\r\n.wav\r\n1\r\nb_Piano_v80o5c.wav\r\n//\r\n";
-            KeySoundTrack blue = manifest.AddGeneratedTrack(2, KeySoundMode.Blue, false, false,
+            KeySoundTrack blue = manifest.AddGeneratedTrack(2, TrackMode.Blue, false, false,
                 17, new[] { "b_Piano_v80o5c.wav" }, blueRow,
                 new IReadOnlyList<MNote>[] { new[] { note } });
             Assert(blue.KeySounds.Count == 1 && blue.KeySounds[0].WavId == 17,
                 "Manifest lost the WAV ID or key sound order.");
-            Assert(blue.KeySounds[0].TrackId == 2 && blue.KeySounds[0].Mode == KeySoundMode.Blue,
+            Assert(blue.KeySounds[0].TrackId == 2 && blue.KeySounds[0].Mode == TrackMode.Blue,
                 "Manifest lost the track or mode.");
             Assert(blue.KeySounds[0].Identity[0].NoteNumber == 60 &&
                 blue.KeySounds[0].Identity[0].LengthNumerator == 1 &&
@@ -285,18 +286,18 @@ namespace Mid2BMS.Core.Tests
                 "Manifest lost MIDI-derived identity.");
 
             const string purpleRow = "Piano\r\n.wav\r\n1\r\n____dummy_p_Piano_v80o5c-o5b.wav\r\np_Piano_v80o5c-o5b.wav\r\n//\r\n";
-            KeySoundTrack purple = manifest.AddGeneratedTrack(3, KeySoundMode.Purple, false, false,
+            KeySoundTrack purple = manifest.AddGeneratedTrack(3, TrackMode.Purple, false, false,
                 22, new[] { "p_Piano_v80o5c-o5b.wav" }, purpleRow,
                 new IReadOnlyList<MNote>[] { new[] { note } });
             Assert(purple.RequiredWaveFileCount == 1 && purple.KeySounds.Count == 1,
                 "Purple-mode dummy was counted as a key sound.");
             const string emptyChordRow = "Piano\r\n.wav\r\n1\r\n//\r\n";
-            KeySoundTrack emptyChord = manifest.AddGeneratedTrack(4, KeySoundMode.Blue, true, false,
+            KeySoundTrack emptyChord = manifest.AddGeneratedTrack(4, TrackMode.Blue, true, false,
                 23, Array.Empty<string>(), emptyChordRow, Array.Empty<IReadOnlyList<MNote>>());
             Assert(emptyChord.KeySounds.Count == 0 && emptyChord.HasLegacyRow,
                 "Empty chord track disappeared from the compatibility format.");
             const string chordRow = "Piano\r\n.wav\r\n1\r\nb_Piano_00001_ce.wav\r\n//\r\n";
-            KeySoundTrack chord = manifest.AddGeneratedTrack(5, KeySoundMode.Blue, true, false,
+            KeySoundTrack chord = manifest.AddGeneratedTrack(5, TrackMode.Blue, true, false,
                 24, new[] { "b_Piano_00001_ce.wav" }, chordRow,
                 new IReadOnlyList<MNote>[] { new[] { note, new MNote(64, 1, 4, 80) } });
             Assert(chord.KeySounds[0].IsChord && chord.KeySounds[0].Identity.Count == 2,
@@ -312,7 +313,7 @@ namespace Mid2BMS.Core.Tests
             bool rejected = false;
             try
             {
-                new KeySoundManifest().AddGeneratedTrack(0, KeySoundMode.Blue, false, false,
+                new KeySoundManifest().AddGeneratedTrack(0, TrackMode.Blue, false, false,
                     1, new[] { "different.wav" }, blueRow,
                     new IReadOnlyList<MNote>[] { new[] { note } });
             }
@@ -322,7 +323,7 @@ namespace Mid2BMS.Core.Tests
             }
             Assert(rejected, "Manifest accepted different BMS and WaveSplitter filenames.");
 
-            manifest.AddGeneratedTrack(6, KeySoundMode.Blue, false, false,
+            manifest.AddGeneratedTrack(6, TrackMode.Blue, false, false,
                 25, new[] { "b_Piano_v80o5c.wav" }, blueRow,
                 new IReadOnlyList<MNote>[] { new[] { note } });
             rejected = false;
@@ -356,6 +357,42 @@ namespace Mid2BMS.Core.Tests
             {
                 Directory.Delete(directory, true);
             }
+        }
+
+        private static void AssertTrackSettingsCompatibility()
+        {
+            Assert(TrackSettings.FromLegacyGlobalMode(false, false) == TrackMode.Blue &&
+                TrackSettings.FromLegacyGlobalMode(false, true) == TrackMode.Purple &&
+                TrackSettings.FromLegacyGlobalMode(true, false) == TrackMode.Red,
+                "Legacy global mode mapping changed.");
+
+            IReadOnlyList<TrackSettings> settings = TrackSettings.FromLegacyFlags(2, TrackMode.Purple,
+                new[] { false, true }, new[] { false, false }, new[] { false, false },
+                new[] { false, false }, new[] { true, false });
+            Assert(settings.Count == 2 && settings[0].Mode == TrackMode.Purple &&
+                settings[0].IsOneShot && settings[1].IsDrums,
+                "Legacy track flags were not mapped into TrackSettings.");
+
+            IReadOnlyList<TrackSettings> defaults =
+                TrackSettings.NormalizeForGlobalMode(3, TrackMode.Blue, null);
+            Assert(defaults.Count == 3 && defaults.All(x => x.Mode == TrackMode.Blue) &&
+                defaults.All(x => !x.IsDrums && !x.IsChord && !x.IsOneShot && !x.IsXChain && !x.Ignore),
+                "Default TrackSettings changed legacy defaults.");
+
+            bool rejected = false;
+            try
+            {
+                TrackSettings.NormalizeForGlobalMode(2, TrackMode.Blue, new[]
+                {
+                    new TrackSettings { Mode = TrackMode.Blue },
+                    new TrackSettings { Mode = TrackMode.Purple },
+                });
+            }
+            catch (NotSupportedException)
+            {
+                rejected = true;
+            }
+            Assert(rejected, "Phase 10 accepted mixed per-track modes before Phase 11.");
         }
 
         private static string NewTemporaryDirectory()

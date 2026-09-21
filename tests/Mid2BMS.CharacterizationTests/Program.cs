@@ -137,7 +137,8 @@ namespace Mid2BMS.CharacterizationTests
 
         private static string RunFixture(string fixtureName, string fixtureDirectory, string temporaryRoot, bool accept,
             IKeySoundNamingStrategy namingStrategy = null, string workName = null, bool compareGolden = true,
-            int? startingWavId = null, int? wavidSpacing = null, bool duplicateTrackNames = false)
+            int? startingWavId = null, int? wavidSpacing = null, bool duplicateTrackNames = false,
+            bool useTrackSettings = false)
         {
             IDictionary<string, string> settings = ReadSettings(Path.Combine(fixtureDirectory, SettingsFileName));
             string sourceInputPath = Path.Combine(fixtureDirectory, InputFileName);
@@ -186,28 +187,30 @@ namespace Mid2BMS.CharacterizationTests
             double progressValue = 0.0;
             bool progressFinished = false;
 
-            target.Mid2BMS_Process(
-                isRedMode,
-                isPurpleMode,
-                ParseBool(settings, "createExtraFiles"),
-                ref vacantWavid,
-                ref vacantBmsChannelIndex,
-                ParseBool(settings, "lookAtInstrumentName"),
-                GetRequiredSetting(settings, "marginTimeBeats"),
-                wavidSpacing ?? ParseInt(settings, "wavidSpacing"),
-                out trackCsv,
-                ref midiTrackNames,
-                out midiInstrumentNames,
-                isDrumsList,
-                null,
-                isChordList,
-                isXChainList,
-                isOneShotList,
-                ParseBool(settings, "sequenceLayer"),
-                ParseInt(settings, "newTimebase"),
-                ParseInt(settings, "velocityStep"),
-                ref progressValue,
-                ref progressFinished);
+            IReadOnlyList<TrackSettings> trackSettings = TrackSettings.FromLegacyFlags(trackCount,
+                TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode),
+                isDrumsList, null, isChordList, isXChainList, isOneShotList);
+            if (useTrackSettings)
+            {
+                target.Mid2BMS_Process(isRedMode, isPurpleMode, ParseBool(settings, "createExtraFiles"),
+                    ref vacantWavid, ref vacantBmsChannelIndex, ParseBool(settings, "lookAtInstrumentName"),
+                    GetRequiredSetting(settings, "marginTimeBeats"),
+                    wavidSpacing ?? ParseInt(settings, "wavidSpacing"), out trackCsv,
+                    ref midiTrackNames, out midiInstrumentNames, trackSettings,
+                    ParseBool(settings, "sequenceLayer"), ParseInt(settings, "newTimebase"),
+                    ParseInt(settings, "velocityStep"), ref progressValue, ref progressFinished);
+            }
+            else
+            {
+                target.Mid2BMS_Process(isRedMode, isPurpleMode, ParseBool(settings, "createExtraFiles"),
+                    ref vacantWavid, ref vacantBmsChannelIndex, ParseBool(settings, "lookAtInstrumentName"),
+                    GetRequiredSetting(settings, "marginTimeBeats"),
+                    wavidSpacing ?? ParseInt(settings, "wavidSpacing"), out trackCsv,
+                    ref midiTrackNames, out midiInstrumentNames, isDrumsList, null, isChordList,
+                    isXChainList, isOneShotList, ParseBool(settings, "sequenceLayer"),
+                    ParseInt(settings, "newTimebase"), ParseInt(settings, "velocityStep"),
+                    ref progressValue, ref progressFinished);
+            }
 
             if (!progressFinished || progressValue != 1.0)
             {
@@ -239,7 +242,7 @@ namespace Mid2BMS.CharacterizationTests
             {
                 string workDirectory = RunFixture(fixtureName, Path.Combine(fixturesRoot, fixtureName),
                     temporaryRoot, false, namingStrategy, scenarioName, false, startingWavId, wavidSpacing,
-                    duplicateTrackNames);
+                    duplicateTrackNames, useTrackSettings: true);
                 KeySoundManifest manifest = KeySoundManifest.FromLegacyRenamerText(
                     FileIO.ReadAllText(Path.Combine(workDirectory, "text5_renamer_array.txt")));
                 string[] waveNames = manifest.Tracks.SelectMany(track => track.KeySounds)

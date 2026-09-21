@@ -5,8 +5,6 @@ using System.Text;
 
 namespace Mid2BMS
 {
-    internal enum KeySoundMode { Unknown, Blue, Purple, Red }
-
     // A snapshot of the MIDI-derived information that identifies one note in a key sound.
     internal sealed record KeySoundNoteIdentity(int NoteNumber, int Velocity, long LengthNumerator,
         long LengthDenominator, long? StartNumerator, long? StartDenominator,
@@ -25,7 +23,7 @@ namespace Mid2BMS
     {
         public int Id { get; }
         public int TrackId { get; }
-        public KeySoundMode Mode { get; }
+        public TrackMode? Mode { get; }
         public bool IsChord { get; }
         public bool IsOneShot { get; }
         public int? WavId { get; }
@@ -33,7 +31,7 @@ namespace Mid2BMS
         public string BmsFileName { get; }
         public IReadOnlyList<KeySoundNoteIdentity> Identity { get; }
 
-        public KeySound(int id, int trackId, KeySoundMode mode, bool isChord, bool isOneShot,
+        public KeySound(int id, int trackId, TrackMode? mode, bool isChord, bool isOneShot,
             int? wavId, string fileName, string bmsFileName, IEnumerable<KeySoundNoteIdentity> identity)
         {
             Id = id;
@@ -106,7 +104,7 @@ namespace Mid2BMS
             }
         }
 
-        public KeySoundTrack AddGeneratedTrack(int trackId, KeySoundMode mode, bool isChord, bool isOneShot,
+        public KeySoundTrack AddGeneratedTrack(int trackId, TrackMode mode, bool isChord, bool isOneShot,
             int firstWavId, IReadOnlyList<string> bmsFileNames, string renamerText,
             IReadOnlyList<IReadOnlyList<MNote>> identities)
         {
@@ -143,7 +141,7 @@ namespace Mid2BMS
             {
                 string[] waveNames = row.Skip(3).ToArray();
                 var keySounds = waveNames.Where(name => !KeySoundTrack.IsDummy(name))
-                    .Select((name, id) => new KeySound(id, -1, KeySoundMode.Unknown, false, false,
+                    .Select((name, id) => new KeySound(id, -1, null, false, false,
                         null, name, name, Array.Empty<KeySoundNoteIdentity>())).ToArray();
                 manifest.tracks.Add(new KeySoundTrack(-1, row[0], row[1], row[2],
                     waveNames, keySounds, true));
