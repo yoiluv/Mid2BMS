@@ -20,6 +20,7 @@ namespace Mid2BMS.Core.Tests
                 AssertLegacyHashGuard();
                 AssertMidiQuantization();
                 AssertLegacyKeySoundNaming();
+                AssertSequentialKeySoundNaming();
                 AssertKeySoundManifest();
                 AssertWaveSplitService();
                 AssertDuplicateDefinitionService();
@@ -234,6 +235,38 @@ namespace Mid2BMS.Core.Tests
                 "NameWaves did not use the injected naming strategy for both outputs.");
         }
 
+        private static void AssertSequentialKeySoundNaming()
+        {
+            var note = new MNote(60, 1, 4, 80);
+            var context = new KeySoundContext(0, "Kick", KeySoundMode.Blue, 0, false, false,
+                new[] { KeySoundNoteIdentity.FromMNote(note) }, "b_Kick_", ".wav", 2, 1);
+            var sequential = new SequentialKeySoundNamingStrategy();
+            Assert(sequential.GetFileName(context) == "0001.wav" &&
+                sequential.GetFileName(context with { GlobalIndex = 42 }) == "0042.wav",
+                "Global sequential naming changed.");
+
+            var trackSequential = new TrackSequentialKeySoundNamingStrategy();
+            Assert(trackSequential.GetFileName(context) == "Kick_001.wav" &&
+                trackSequential.GetFileName(context with { IndexWithinTrack = 9 }) == "Kick_010.wav",
+                "Track sequential numbering changed.");
+            Assert(trackSequential.GetFileName(context with { TrackName = "Bass/Lead:1", IndexWithinTrack = 0 })
+                == "Bass_Lead_1_001.wav", "Track name was not made safe for a WAV filename.");
+            Assert(trackSequential.GetFileName(context with { TrackName = "Piano", DisambiguateTrackName = true })
+                == "Piano_t03_001.wav", "Duplicate track names were not disambiguated.");
+            Assert(trackSequential.GetFileName(context with { TrackName = "____dummy_FX" })
+                == "Track_____dummy_FX_001.wav",
+                "Track name collided with the WaveSplitter dummy prefix.");
+
+            var naming = new NameWaves(sequential, trackId: 2, firstGlobalIndex: 6);
+            string renamerText;
+            naming.AllNoteToName(0, "Kick", ".wav", "b_Kick_", ".wav",
+                "b_Kick_", ".wav", out renamerText, false, false,
+                new List<MNote> { note, new MNote(62, 1, 4, 80) }, false);
+            Assert(naming.wavnms.SequenceEqual(new[] { "0006.wav", "0007.wav" }) &&
+                renamerText.Contains("0006.wav\r\n0007.wav\r\n"),
+                "NameWaves did not share sequential names with BMS and WaveSplitter.");
+        }
+
         private static void AssertKeySoundManifest()
         {
             var manifest = new KeySoundManifest();
@@ -288,6 +321,20 @@ namespace Mid2BMS.Core.Tests
                 rejected = true;
             }
             Assert(rejected, "Manifest accepted different BMS and WaveSplitter filenames.");
+
+            manifest.AddGeneratedTrack(6, KeySoundMode.Blue, false, false,
+                25, new[] { "b_Piano_v80o5c.wav" }, blueRow,
+                new IReadOnlyList<MNote>[] { new[] { note } });
+            rejected = false;
+            try
+            {
+                manifest.AssertUniqueOutputFileNames();
+            }
+            catch (InvalidOperationException)
+            {
+                rejected = true;
+            }
+            Assert(rejected, "Manifest accepted duplicate WAV filenames across tracks.");
         }
 
         private static void AssertDuplicateDefinitionService()

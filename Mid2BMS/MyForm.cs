@@ -12,6 +12,7 @@ namespace Mid2BMS
         public String FileName_MidiFile = "";  //@"stdread.mid";
         public String FileName_WaveFile = "";  //@"";
         public String FileName_BMSFile = "";  //@"";
+        public IKeySoundNamingStrategy NamingStrategy { get; set; } = new LegacyKeySoundNamingStrategy();
 
         //***********************************************************************************
         //*** 既存出力の上書き確認
@@ -79,7 +80,7 @@ namespace Mid2BMS
             }
             #endregion
 
-            new Mid2BmsConverter(PathBase, FileName_MidiFile).Run(
+            new Mid2BmsConverter(PathBase, FileName_MidiFile, NamingStrategy).Run(
                 isRedMode, isPurpleMode, createExFiles, ref VacantWavid, ref DefaultVacantBMSChannelIdx,
                 LookAtInstrumentName, margintime_beats, WavidSpacing,
                 out trackCsv, ref MidiTrackNames, out MidiInstrumentNames,

@@ -94,6 +94,17 @@ namespace Mid2BMS
     {
         private readonly List<KeySoundTrack> tracks = new List<KeySoundTrack>();
         public IReadOnlyList<KeySoundTrack> Tracks => tracks.AsReadOnly();
+        public int KeySoundCount => tracks.Sum(track => track.KeySounds.Count);
+
+        public void AssertUniqueOutputFileNames()
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeySound keySound in tracks.SelectMany(track => track.KeySounds))
+            {
+                if (!names.Add(keySound.FileName))
+                    throw new InvalidOperationException("Key sound filename is used more than once: " + keySound.FileName);
+            }
+        }
 
         public KeySoundTrack AddGeneratedTrack(int trackId, KeySoundMode mode, bool isChord, bool isOneShot,
             int firstWavId, IReadOnlyList<string> bmsFileNames, string renamerText,

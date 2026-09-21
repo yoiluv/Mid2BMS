@@ -20,6 +20,7 @@ namespace Mid2BMS
 
         List<String> MMLs = new List<String>();
         List<String> MidiTrackNames = new List<String>();
+        HashSet<string> duplicateSafeTrackNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         String WavFileName_Prefix_Blue = "b_";
         String WavFileName_Prefix_Red = "r_";
@@ -38,8 +39,17 @@ namespace Mid2BMS
             ref double progressValue, double progressMin, double progressMax)
         {
             Manifest = new KeySoundManifest();
+            NamingStrategy ??= new LegacyKeySoundNamingStrategy();
             MMLs = MMLs_;
             MidiTrackNames = MidiTrackNames_;
+            duplicateSafeTrackNames = new HashSet<string>(
+                Enumerable.Range(0, MMLs.Count)
+                    .Select(i => TrackSequentialKeySoundNamingStrategy.GetSafeTrackName(
+                        i < MidiTrackNames.Count ? MidiTrackNames[i] : "MidiTrack " + (i + 1), i))
+                    .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key),
+                StringComparer.OrdinalIgnoreCase);
             //VacantWavid = VacantWavid_;
             MMLs_ = MidiTrackNames_ = null;  // 初期化
             //VacantWavid_ = -9999;  // 初期化
@@ -150,6 +160,7 @@ namespace Mid2BMS
             }
 
             String BMSFileName = isRedMode ? @"text6_bms_red.txt" : (isPurpleMode ? @"text6_bms_purple.txt" : @"text6_bms_blue.txt");
+            if (!(NamingStrategy is LegacyKeySoundNamingStrategy)) Manifest.AssertUniqueOutputFileNames();
             FileIO.WriteAllText(pathBase + @"text5_renamer_array.txt", Manifest.ToLegacyRenamerText());
             FileIO.WriteAllText(pathBase + BMSFileName, text[5]);
             FileIO.WriteAllText(pathBase + @"text9_trackname_csv.txt", text[8]);
@@ -220,7 +231,9 @@ namespace Mid2BMS
 
 
 
-            nw = new NameWaves(NamingStrategy);
+            nw = new NameWaves(NamingStrategy, TrackIndex, Manifest.KeySoundCount + 1,
+                duplicateSafeTrackNames.Contains(
+                    TrackSequentialKeySoundNamingStrategy.GetSafeTrackName(MidiTrackName, TrackIndex)));
             String WavFileName_Prefix = isRedMode ? WavFileName_Prefix_Red : isPurpleMode ? WavFileName_Prefix_Purple : WavFileName_Prefix_Blue;
             String outInArray;
             if (isChordMode)

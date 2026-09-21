@@ -9,10 +9,17 @@ namespace Mid2BMS
     {
         public List<String> wavnms;
         private readonly IKeySoundNamingStrategy namingStrategy;
+        private readonly int trackId;
+        private readonly int firstGlobalIndex;
+        private readonly bool disambiguateTrackName;
 
-        public NameWaves(IKeySoundNamingStrategy namingStrategy = null)
+        public NameWaves(IKeySoundNamingStrategy namingStrategy = null, int trackId = 0,
+            int firstGlobalIndex = 1, bool disambiguateTrackName = false)
         {
             this.namingStrategy = namingStrategy ?? new LegacyKeySoundNamingStrategy();
+            this.trackId = trackId;
+            this.firstGlobalIndex = firstGlobalIndex;
+            this.disambiguateTrackName = disambiguateTrackName;
         }
 
         private string Name(int namingway, string trackName, KeySoundMode mode, int index,
@@ -20,7 +27,8 @@ namespace Mid2BMS
         {
             var identity = notes.Select(KeySoundNoteIdentity.FromMNote).ToArray();
             return namingStrategy.GetFileName(new KeySoundContext(
-                namingway, trackName, mode, index, isChord, isOneShot, identity, prefix, suffix));
+                namingway, trackName, mode, index, isChord, isOneShot, identity, prefix, suffix,
+                trackId, firstGlobalIndex + index, disambiguateTrackName));
         }
 
         /// <summary>

@@ -62,6 +62,24 @@ namespace Mid2BMS.CharacterizationTests
                     }
                 }
 
+                if (!accept)
+                {
+                    RunNamingScenario(fixturesRoot, temporaryRoot, "blue_basic",
+                        new SequentialKeySoundNamingStrategy(), "sequential_blue", true, false, failures,
+                        startingWavId: 17, wavidSpacing: 3, verifyWaveOutput: true);
+                    RunNamingScenario(fixturesRoot, temporaryRoot, "blue_basic",
+                        new TrackSequentialKeySoundNamingStrategy(), "track_sequential_blue", false, false, failures);
+                    RunNamingScenario(fixturesRoot, temporaryRoot, "purple_portamento",
+                        new SequentialKeySoundNamingStrategy(), "sequential_purple", true, true, failures);
+                    RunNamingScenario(fixturesRoot, temporaryRoot, "chord",
+                        new TrackSequentialKeySoundNamingStrategy(), "track_sequential_chord", false, false, failures);
+                    RunNamingScenario(fixturesRoot, temporaryRoot, "red_automation",
+                        new SequentialKeySoundNamingStrategy(), "sequential_red", true, false, failures);
+                    RunNamingScenario(fixturesRoot, temporaryRoot, "blue_basic",
+                        new TrackSequentialKeySoundNamingStrategy(), "track_sequential_duplicate",
+                        false, false, failures, duplicateTrackNames: true);
+                }
+
                 // Generate every fixture successfully before replacing any checked-in baseline.
                 if (accept && failures.Count == 0)
                 {
@@ -117,11 +135,13 @@ namespace Mid2BMS.CharacterizationTests
             }
         }
 
-        private static void RunFixture(string fixtureName, string fixtureDirectory, string temporaryRoot, bool accept)
+        private static string RunFixture(string fixtureName, string fixtureDirectory, string temporaryRoot, bool accept,
+            IKeySoundNamingStrategy namingStrategy = null, string workName = null, bool compareGolden = true,
+            int? startingWavId = null, int? wavidSpacing = null, bool duplicateTrackNames = false)
         {
             IDictionary<string, string> settings = ReadSettings(Path.Combine(fixtureDirectory, SettingsFileName));
             string sourceInputPath = Path.Combine(fixtureDirectory, InputFileName);
-            string workDirectory = Path.Combine(temporaryRoot, fixtureName);
+            string workDirectory = Path.Combine(temporaryRoot, workName ?? fixtureName);
             string actualInputPath = Path.Combine(workDirectory, InputFileName);
 
             if (!File.Exists(sourceInputPath))
@@ -154,11 +174,14 @@ namespace Mid2BMS.CharacterizationTests
             var target = new MyForm();
             target.PathBase = workDirectory + Path.DirectorySeparatorChar;
             target.FileName_MidiFile = InputFileName;
+            target.NamingStrategy = namingStrategy ?? new LegacyKeySoundNamingStrategy();
 
-            int vacantWavid = ParseInt(settings, "vacantWavid");
+            int vacantWavid = startingWavId ?? ParseInt(settings, "vacantWavid");
             int vacantBmsChannelIndex = ParseInt(settings, "vacantBmsChannelIndex");
             string trackCsv;
-            List<string> midiTrackNames = null;
+            List<string> midiTrackNames = duplicateTrackNames
+                ? Enumerable.Range(0, trackCount).Select(i => i == 1 || i == 2 ? "Piano" : "Track" + i).ToList()
+                : null;
             List<string> midiInstrumentNames;
             double progressValue = 0.0;
             bool progressFinished = false;
@@ -171,7 +194,7 @@ namespace Mid2BMS.CharacterizationTests
                 ref vacantBmsChannelIndex,
                 ParseBool(settings, "lookAtInstrumentName"),
                 GetRequiredSetting(settings, "marginTimeBeats"),
-                ParseInt(settings, "wavidSpacing"),
+                wavidSpacing ?? ParseInt(settings, "wavidSpacing"),
                 out trackCsv,
                 ref midiTrackNames,
                 out midiInstrumentNames,
@@ -198,12 +221,126 @@ namespace Mid2BMS.CharacterizationTests
             string[] actualFiles = GetActualFiles(workDirectory);
             string expectedDirectory = Path.Combine(fixtureDirectory, "expected");
 
-            if (accept)
+            if (accept || !compareGolden)
             {
-                return;
+                return workDirectory;
             }
 
             CompareWithExpected(actualFiles, expectedDirectory);
+            return workDirectory;
+        }
+
+        private static void RunNamingScenario(string fixturesRoot, string temporaryRoot, string fixtureName,
+            IKeySoundNamingStrategy namingStrategy, string scenarioName, bool sequential, bool purple,
+            List<string> failures, int? startingWavId = null, int? wavidSpacing = null,
+            bool duplicateTrackNames = false, bool verifyWaveOutput = false)
+        {
+            try
+            {
+                string workDirectory = RunFixture(fixtureName, Path.Combine(fixturesRoot, fixtureName),
+                    temporaryRoot, false, namingStrategy, scenarioName, false, startingWavId, wavidSpacing,
+                    duplicateTrackNames);
+                KeySoundManifest manifest = KeySoundManifest.FromLegacyRenamerText(
+                    FileIO.ReadAllText(Path.Combine(workDirectory, "text5_renamer_array.txt")));
+                string[] waveNames = manifest.Tracks.SelectMany(track => track.KeySounds)
+                    .Select(key => key.FileName).ToArray();
+                if (waveNames.Length < 2 ||
+                    waveNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != waveNames.Length)
+                    throw new InvalidDataException("New naming generated too few key sounds or duplicate filenames.");
+
+                string bmsFile = Directory.GetFiles(workDirectory, "text6_bms_*.txt").Single();
+                string[] wavDefinitions = FileIO.ReadAllText(bmsFile)
+                    .Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Where(line => line.StartsWith("#WAV", StringComparison.Ordinal)).ToArray();
+                string[] bmsNames = wavDefinitions.Select(line => line.Substring(line.IndexOf(' ') + 1)).ToArray();
+                if (!waveNames.SequenceEqual(bmsNames, StringComparer.Ordinal))
+                    throw new InvalidDataException("BMS #WAV names differ from WaveSplitter filenames.");
+
+                int nextWavId = startingWavId ?? 1;
+                int[] expectedIds = manifest.Tracks.SelectMany(track =>
+                {
+                    int[] ids = Enumerable.Range(nextWavId, track.KeySounds.Count).ToArray();
+                    if (track.KeySounds.Count > 0) nextWavId += track.KeySounds.Count + (wavidSpacing ?? 0);
+                    return ids;
+                }).ToArray();
+                int[] actualIds = wavDefinitions.Select(line => BMSParser.IntFromHex36(line.Substring(4, 2))).ToArray();
+                if (!actualIds.SequenceEqual(expectedIds))
+                    throw new InvalidDataException("BMS WAV IDs no longer match the manifest track order and spacing.");
+
+                if (sequential)
+                {
+                    string[] expected = Enumerable.Range(1, waveNames.Length)
+                        .Select(number => number.ToString("D4", CultureInfo.InvariantCulture) + ".wav").ToArray();
+                    if (!waveNames.SequenceEqual(expected, StringComparer.Ordinal))
+                        throw new InvalidDataException("Sequential filenames are not consecutive across tracks.");
+                }
+                else
+                {
+                    int disambiguatedTrackCount = 0;
+                    foreach (KeySoundTrack track in manifest.Tracks)
+                    {
+                        for (int i = 0; i < track.KeySounds.Count; i++)
+                        {
+                            string sequenceSuffix = "_" + (i + 1).ToString("D3", CultureInfo.InvariantCulture) + ".wav";
+                            string fileName = track.KeySounds[i].FileName;
+                            if (duplicateTrackNames && track.InputPrefix == "Piano")
+                            {
+                                if (!fileName.StartsWith("Piano_t", StringComparison.Ordinal) ||
+                                    !fileName.EndsWith(sequenceSuffix, StringComparison.Ordinal))
+                                    throw new InvalidDataException("Duplicate track name was not disambiguated.");
+                                if (i == 0) disambiguatedTrackCount++;
+                            }
+                            else if (fileName != track.InputPrefix + sequenceSuffix)
+                                throw new InvalidDataException("Track-sequential filenames do not restart for each track.");
+                        }
+                    }
+                    if (duplicateTrackNames && disambiguatedTrackCount < 2)
+                        throw new InvalidDataException("Duplicate-name scenario did not exercise two tracks.");
+                }
+
+                if (purple)
+                {
+                    foreach (KeySoundTrack track in manifest.Tracks)
+                    {
+                        string[] slots = track.ToLegacyRow().Skip(3).ToArray();
+                        if (slots.Length != track.KeySounds.Count * 2)
+                            throw new InvalidDataException("Purple dummy slots were lost.");
+                        for (int i = 0; i < track.KeySounds.Count; i++)
+                        {
+                            if (slots[i * 2] != "____dummy_" + track.KeySounds[i].FileName ||
+                                slots[i * 2 + 1] != track.KeySounds[i].FileName)
+                                throw new InvalidDataException("Purple dummy slots do not match the key sound name.");
+                        }
+                    }
+                }
+
+                if (verifyWaveOutput)
+                {
+                    float[] samples = new float[80];
+                    for (int i = 20; i < 40; i++) samples[i] = 0.5f;
+                    for (int i = 60; i < 80; i++) samples[i] = 0.5f;
+                    WaveFileWriter.WriteAllSamples(Path.Combine(workDirectory, "wave_input.wav"),
+                        new[] { samples, samples }, 2, 44100, 16);
+
+                    string pathBase = workDirectory + Path.DirectorySeparatorChar;
+                    var splitter = new WaveSplitService(pathBase, pathBase, "wave_input.wav");
+                    double progress = 0;
+                    int requiredCount;
+                    int createdCount = splitter.Split(-60, 0, 0, 0, true, true,
+                        "unused_{0}.wav", new[] { 0.0001f }, ref progress, out requiredCount);
+                    if (requiredCount != waveNames.Length || createdCount < 1 ||
+                        !File.Exists(Path.Combine(workDirectory, "renamed", waveNames[0])))
+                        throw new InvalidDataException("WaveSplitter did not write the BMS-defined sequential filename.");
+                }
+
+                Console.WriteLine("PASSED    " + scenarioName);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(scenarioName + ": " + exception.Message);
+                Console.Error.WriteLine("FAILED   " + scenarioName);
+                Console.Error.WriteLine(exception.ToString());
+            }
         }
 
         private static string[] GetActualFiles(string workDirectory)
