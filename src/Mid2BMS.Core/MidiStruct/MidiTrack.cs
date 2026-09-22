@@ -128,10 +128,15 @@ namespace Mid2BMS
         /// </summary>
         public MidiTrack SplitNotes(MidiStruct midistruct, bool isChordMode)
         {
+            return SplitNotes(midistruct, isChordMode, RedSplitOptions.FromLegacyStatics());
+        }
+
+        public MidiTrack SplitNotes(MidiStruct midistruct, bool isChordMode, RedSplitOptions options)
+        {
             return new MidiTrack(
                 MidiTrack.SplitNotes(MidiTrack.DirectSum(new IEnumerable<MidiEvent>[] {
                     this.OrderBy(x => x.tick)
-                }), midistruct, new List<bool> { isChordMode }, new List<bool> { false }).Select(x => x.Event)
+                }), midistruct, new List<bool> { isChordMode }, new List<bool> { false }, options).Select(x => x.Event)
                 );
         }
 
@@ -147,6 +152,15 @@ namespace Mid2BMS
         public static IEnumerable<MultiTrackMidiEvent> SplitNotes(
             IEnumerable<MultiTrackMidiEvent> tracks, MidiStruct midistruct, List<bool> isChordList, List<bool> isXChainList)
         {
+            return SplitNotes(tracks, midistruct, isChordList, isXChainList,
+                RedSplitOptions.FromLegacyStatics());
+        }
+
+        public static IEnumerable<MultiTrackMidiEvent> SplitNotes(
+            IEnumerable<MultiTrackMidiEvent> tracks, MidiStruct midistruct, List<bool> isChordList,
+            List<bool> isXChainList, RedSplitOptions options)
+        {
+            if (options == null) throw new ArgumentNullException(nameof(options));
             // List<ArrTuple<int, MidiEvent>> とか書きたくないですね
 
             //######## TrackIDの順にソートされた入力
@@ -248,8 +262,8 @@ namespace Mid2BMS
                     var deltatickForEvents = deltatick - eventsOrderByTrackID[i].Event.tick;
 
                     // 後で必要になる、オートメーションの切り出し範囲
-                    int LTime = me.tick - (int)(midistruct.BeatsToTicks(1) * SPLIT_BEATS_AUTOMATIONLEFT);
-                    int RTime = me.tick + (int)(midistruct.BeatsToTicks(1) * SPLIT_BEATS_AUTOMATIONRIGHT);
+                    int LTime = me.tick - (int)(midistruct.BeatsToTicks(1) * options.AutomationLeftBeats);
+                    int RTime = me.tick + (int)(midistruct.BeatsToTicks(1) * options.AutomationRightBeats);
                     me.tick = deltatick;  // updated
                     
                     int MaxLength = -1;
@@ -277,7 +291,7 @@ namespace Mid2BMS
                     foreach (MultiTrackMidiEvent mev in s2) mev.Event.tick += deltatickForEvents;  // updated
                     outputEventsNonNote.AddRange(s2);
 
-                    deltatick += MaxLength + (int)(midistruct.BeatsToTicks(1) * SPLIT_BEATS_INTERVAL);
+                    deltatick += MaxLength + (int)(midistruct.BeatsToTicks(1) * options.IntervalBeats);
                 }
             }
             st.Stop();

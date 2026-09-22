@@ -387,21 +387,34 @@ namespace Mid2BMS.Core.Tests
             Assert(mixed[0].Mode == TrackMode.Blue && mixed[1].Mode == TrackMode.Purple,
                 "Phase 11 rejected Blue/Purple per-track mode mixing.");
 
-            AssertThrows<NotSupportedException>(() => TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
+            IReadOnlyList<TrackSettings> redMixed = TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
             {
                 new TrackSettings { Mode = TrackMode.Blue },
                 new TrackSettings { Mode = TrackMode.Red },
-            }, false), "Phase 11 accepted Red mode mixing.");
-            AssertThrows<NotSupportedException>(() => TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
+            }, false);
+            Assert(redMixed[0].Mode == TrackMode.Blue && redMixed[1].Mode == TrackMode.Red,
+                "Phase 12 rejected Red per-track mode mixing.");
+
+            IReadOnlyList<TrackSettings> sequenceMixed = TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
             {
                 new TrackSettings { Mode = TrackMode.Blue },
                 new TrackSettings { Mode = TrackMode.Purple },
-            }, true), "Phase 11 accepted Blue/Purple mixing with SequenceLayer.");
+            }, true);
+            Assert(sequenceMixed.Count == 2,
+                "Phase 12 rejected mixed modes with SequenceLayer.");
             AssertThrows<ArgumentException>(() => TrackSettings.NormalizeForConversion(2, TrackMode.Blue, new[]
             {
                 new TrackSettings { Mode = TrackMode.Blue },
                 new TrackSettings { Mode = TrackMode.Purple, IsChord = true },
             }, false), "Phase 11 accepted Chord mode on a Purple track.");
+            AssertThrows<ArgumentException>(() => TrackSettings.NormalizeForConversion(1, TrackMode.Red, new[]
+            {
+                new TrackSettings { Mode = TrackMode.Red, IsXChain = true },
+            }, false), "Phase 12 accepted XChain without SequenceLayer.");
+            AssertThrows<ArgumentException>(() => TrackSettings.NormalizeForConversion(1, TrackMode.Blue, new[]
+            {
+                new TrackSettings { Mode = TrackMode.Blue, IsXChain = true },
+            }, true), "Phase 12 accepted XChain on a non-Red track.");
         }
 
         private static string NewTemporaryDirectory()

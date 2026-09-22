@@ -79,6 +79,9 @@ namespace Mid2BMS.CharacterizationTests
                         new TrackSequentialKeySoundNamingStrategy(), "track_sequential_duplicate",
                         false, false, failures, duplicateTrackNames: true);
                     RunMixedModeScenario(fixturesRoot, temporaryRoot, failures);
+                    RunRedMixedModeScenario(fixturesRoot, temporaryRoot, false, failures);
+                    RunRedMixedModeScenario(fixturesRoot, temporaryRoot, true, failures);
+                    RunThreeModeSequenceLayerScenario(fixturesRoot, temporaryRoot, failures);
                 }
 
                 // Generate every fixture successfully before replacing any checked-in baseline.
@@ -139,7 +142,8 @@ namespace Mid2BMS.CharacterizationTests
         private static string RunFixture(string fixtureName, string fixtureDirectory, string temporaryRoot, bool accept,
             IKeySoundNamingStrategy namingStrategy = null, string workName = null, bool compareGolden = true,
             int? startingWavId = null, int? wavidSpacing = null, bool duplicateTrackNames = false,
-            bool useTrackSettings = false, IReadOnlyList<TrackMode> trackModes = null)
+            bool useTrackSettings = false, IReadOnlyList<TrackMode> trackModes = null,
+            bool? sequenceLayerOverride = null, IReadOnlyCollection<int> xChainTrackOverrides = null)
         {
             IDictionary<string, string> settings = ReadSettings(Path.Combine(fixtureDirectory, SettingsFileName));
             string sourceInputPath = Path.Combine(fixtureDirectory, InputFileName);
@@ -172,6 +176,12 @@ namespace Mid2BMS.CharacterizationTests
             List<bool> isChordList = BuildTrackFlags(GetRequiredSetting(settings, "chordTracks"), trackCount);
             List<bool> isXChainList = BuildTrackFlags(GetRequiredSetting(settings, "xChainTracks"), trackCount);
             List<bool> isOneShotList = BuildTrackFlags(GetRequiredSetting(settings, "oneShotTracks"), trackCount);
+            if (xChainTrackOverrides != null)
+            {
+                isXChainList = Enumerable.Range(0, trackCount)
+                    .Select(xChainTrackOverrides.Contains).ToList();
+            }
+            bool sequenceLayer = sequenceLayerOverride ?? ParseBool(settings, "sequenceLayer");
 
             var target = new MyForm();
             target.PathBase = workDirectory + Path.DirectorySeparatorChar;
@@ -207,7 +217,7 @@ namespace Mid2BMS.CharacterizationTests
                     GetRequiredSetting(settings, "marginTimeBeats"),
                     wavidSpacing ?? ParseInt(settings, "wavidSpacing"), out trackCsv,
                     ref midiTrackNames, out midiInstrumentNames, trackSettings,
-                    ParseBool(settings, "sequenceLayer"), ParseInt(settings, "newTimebase"),
+                    sequenceLayer, ParseInt(settings, "newTimebase"),
                     ParseInt(settings, "velocityStep"), ref progressValue, ref progressFinished);
             }
             else
@@ -217,7 +227,7 @@ namespace Mid2BMS.CharacterizationTests
                     GetRequiredSetting(settings, "marginTimeBeats"),
                     wavidSpacing ?? ParseInt(settings, "wavidSpacing"), out trackCsv,
                     ref midiTrackNames, out midiInstrumentNames, isDrumsList, null, isChordList,
-                    isXChainList, isOneShotList, ParseBool(settings, "sequenceLayer"),
+                    isXChainList, isOneShotList, sequenceLayer,
                     ParseInt(settings, "newTimebase"), ParseInt(settings, "velocityStep"),
                     ref progressValue, ref progressFinished);
             }
@@ -414,6 +424,134 @@ namespace Mid2BMS.CharacterizationTests
                 string bms = FileIO.ReadAllText(bmsPath);
                 if (!bms.Contains("#WAV") || !bms.Contains(" b_") || !bms.Contains(" p_"))
                     throw new InvalidDataException("Mixed-mode BMS does not contain both Blue and Purple WAV definitions.");
+
+                Console.WriteLine("PASSED    " + scenarioName);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(scenarioName + ": " + exception.Message);
+                Console.Error.WriteLine("FAILED   " + scenarioName);
+                Console.Error.WriteLine(exception.ToString());
+            }
+        }
+
+        private static void RunRedMixedModeScenario(string fixturesRoot, string temporaryRoot,
+            bool sequenceLayer, List<string> failures)
+        {
+            string scenarioName = sequenceLayer
+                ? "mixed_blue_red_sequence_layer"
+                : "mixed_blue_red";
+            try
+            {
+                TrackMode[] modes =
+                {
+                    TrackMode.Blue,
+                    TrackMode.Blue,
+                    TrackMode.Blue,
+                    TrackMode.Red,
+                    TrackMode.Red,
+                    TrackMode.Blue,
+                };
+                string fixtureName = sequenceLayer ? "sequence_layer" : "red_automation";
+                string workDirectory = RunFixture(fixtureName,
+                    Path.Combine(fixturesRoot, fixtureName), temporaryRoot, false,
+                    workName: scenarioName, compareGolden: false,
+                    useTrackSettings: true, trackModes: modes);
+
+                string bmsPath = Path.Combine(workDirectory, "text6_bms_blue_red.txt");
+                string midiPath = Path.Combine(workDirectory, "text3_tanon_smf_blue_red.mid");
+                if (!File.Exists(bmsPath) || !File.Exists(midiPath))
+                    throw new InvalidDataException("Blue/Red BMS or single-note MIDI output is missing.");
+
+                string bms = FileIO.ReadAllText(bmsPath);
+                if (!bms.Contains(" b_") || !bms.Contains(" r_"))
+                    throw new InvalidDataException("Blue/Red BMS does not contain both mode prefixes.");
+
+                KeySoundManifest manifest = KeySoundManifest.FromLegacyRenamerText(
+                    FileIO.ReadAllText(Path.Combine(workDirectory, "text5_renamer_array.txt")));
+                string[] waveNames = manifest.Tracks.SelectMany(x => x.KeySounds)
+                    .Select(x => x.FileName).ToArray();
+                if (!waveNames.Any(x => x.StartsWith("b_", StringComparison.Ordinal)) ||
+                    !waveNames.Any(x => x.StartsWith("r_", StringComparison.Ordinal)))
+                    throw new InvalidDataException("Blue/Red manifest does not contain both modes.");
+
+                using (var stream = new FileStream(midiPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var midi = new MidiStruct(stream, true);
+                    if (midi.tracks.Count != modes.Length)
+                        throw new InvalidDataException("Blue/Red MIDI track count changed.");
+                    if (!midi.tracks.SelectMany(x => x).Any(x => x is MidiEventCC || x is MidiEventPB))
+                        throw new InvalidDataException("Red automation was not retained in mixed-mode MIDI.");
+
+                    if (sequenceLayer)
+                    {
+                        MidiEventNote[] notes = midi.tracks.SelectMany(x => x.OfType<MidiEventNote>())
+                            .OrderBy(x => x.tick).ToArray();
+                        for (int i = 1; i < notes.Length; i++)
+                        {
+                            if (notes[i].tick < notes[i - 1].tick + notes[i - 1].q)
+                                throw new InvalidDataException("SequenceLayer contains overlapping key sounds.");
+                        }
+                    }
+                }
+
+                Console.WriteLine("PASSED    " + scenarioName);
+            }
+            catch (Exception exception)
+            {
+                failures.Add(scenarioName + ": " + exception.Message);
+                Console.Error.WriteLine("FAILED   " + scenarioName);
+                Console.Error.WriteLine(exception.ToString());
+            }
+        }
+
+        private static void RunThreeModeSequenceLayerScenario(string fixturesRoot,
+            string temporaryRoot, List<string> failures)
+        {
+            const string scenarioName = "mixed_blue_purple_red_sequence_xchain";
+            try
+            {
+                TrackMode[] modes =
+                {
+                    TrackMode.Blue,
+                    TrackMode.Blue,
+                    TrackMode.Red,
+                    TrackMode.Red,
+                    TrackMode.Purple,
+                };
+                const int xChainTrack = 2;
+                string workDirectory = RunFixture("blue_basic",
+                    Path.Combine(fixturesRoot, "blue_basic"), temporaryRoot, false,
+                    workName: scenarioName, compareGolden: false, useTrackSettings: true,
+                    trackModes: modes, sequenceLayerOverride: true,
+                    xChainTrackOverrides: new[] { xChainTrack });
+
+                string bmsPath = Path.Combine(workDirectory, "text6_bms_blue_purple_red.txt");
+                string midiPath = Path.Combine(workDirectory, "text3_tanon_smf_blue_purple_red.mid");
+                if (!File.Exists(bmsPath) || !File.Exists(midiPath))
+                    throw new InvalidDataException("Three-mode SequenceLayer output is missing.");
+
+                string bms = FileIO.ReadAllText(bmsPath);
+                if (!bms.Contains(" b_") || !bms.Contains(" p_") || !bms.Contains(" r_"))
+                    throw new InvalidDataException("Three-mode BMS does not contain every mode prefix.");
+
+                using (var stream = new FileStream(midiPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var midi = new MidiStruct(stream, true);
+                    if (midi.tracks.Count != modes.Length ||
+                        !midi.tracks[xChainTrack].OfType<MidiEventNote>().Any())
+                        throw new InvalidDataException("XChain triggers were not retained in mixed MIDI.");
+
+                    MidiEventNote[] audibleNotes = midi.tracks
+                        .Where((track, index) => index != xChainTrack)
+                        .SelectMany(x => x.OfType<MidiEventNote>())
+                        .OrderBy(x => x.tick).ToArray();
+                    for (int i = 1; i < audibleNotes.Length; i++)
+                    {
+                        if (audibleNotes[i].tick < audibleNotes[i - 1].tick + audibleNotes[i - 1].q)
+                            throw new InvalidDataException("Three-mode SequenceLayer contains overlapping key sounds.");
+                    }
+                }
 
                 Console.WriteLine("PASSED    " + scenarioName);
             }
