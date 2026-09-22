@@ -2,6 +2,16 @@ Mid2BMS
 =======
 This is a tool to help convert .mid to .bms.
 
+## Current release
+
+`v20260922` is distributed as a self-contained Windows x64 ZIP. Extract the ZIP and run `Mid2BMS.exe`; a separate .NET installation is not required. Release contents and known limitations are listed in [`docs/releases/v20260922.md`](docs/releases/v20260922.md).
+
+Maintainers can reproduce the package with:
+
+```powershell
+.\scripts\package-release.ps1 -Version v20260922
+```
+
 これは.midファイルを.bmsに変換するソフトです。  
 いろいろと不完全な点はありますが、とりあえず公開します。  
 実行ファイルは http://mid2bms.web.fc2.com/ に置いてあります。  
@@ -42,9 +52,8 @@ BMS界隈の発展につながることを祈ってやみません。
 About:  
 Mid2BMS BMS Inproved Development Environment  
 Released on April 1st, 2014  
-License: GNU **Lesser** General Public License  
+License: MIT License
 Copyright (c) 2007-2014 yuinore  
-(修正版を公開する際はソースコードも公開してください。)  
 
 Thanks:
 -----------------------------------

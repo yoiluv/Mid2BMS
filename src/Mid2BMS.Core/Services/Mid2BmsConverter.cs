@@ -190,7 +190,7 @@ namespace Mid2BMS
 
             TrackMode globalMode = TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode);
             IReadOnlyList<TrackSettings> normalizedTrackSettings =
-                TrackSettings.NormalizeForGlobalMode(MMLs.Count, globalMode, trackSettings);
+                TrackSettings.NormalizeForConversion(MMLs.Count, globalMode, trackSettings, sequenceLayer);
 
             if (MidiTrackIdentifier == null)
             {
@@ -231,7 +231,7 @@ namespace Mid2BMS
             mw.WavidSpacing = WavidSpacing;
             mw.NamingStrategy = namingStrategy;
             mw.MultiProcess(MMLs, MidiTrackIdentifier, normalizedTrackSettings, sequenceLayer, PathBase,
-                isRedMode, isPurpleMode, createExFiles, ref VacantWavid, timebase, margintime_beats, out trackCsv, out isEmptyList, midi_bpm,
+                createExFiles, ref VacantWavid, timebase, margintime_beats, out trackCsv, out isEmptyList, midi_bpm,
                 ref ProgressBarValue, 0.10, 1.00);
             #endregion
 
@@ -265,7 +265,7 @@ namespace Mid2BMS
             // RedModeの場合はmidiをSplitしたものを提出する
             // ignoreListをちゃんと見て！
 
-            if (isRedMode)
+            if (normalizedTrackSettings.Any(x => x.Mode == TrackMode.Red))
             {
                 MidiStruct ms2 = new MidiStruct(quantizedMidiStreamGenerator(), true);
 

@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <Version>2026.9.22</Version>
+    <AssemblyVersion>2026.9.22.0</AssemblyVersion>
+    <FileVersion>2026.9.22.0</FileVersion>
+    <InformationalVersion>v20260922</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Authors>yuinore and Mid2BMS contributors</Authors>
+    <Company>Mid2BMS contributors</Company>
+    <Product>Mid2BMS</Product>
+    <Description>MIDI to BMS conversion and keysound preparation tool</Description>
+    <Copyright>Copyright (c) 2007-2017 yuinore and Mid2BMS contributors</Copyright>
+    <RepositoryUrl>https://github.com/yoiluv/Mid2BMS</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>

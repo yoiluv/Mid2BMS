@@ -7,7 +7,6 @@
     <AssemblyName>Mid2BMS</AssemblyName>
     <ProjectGuid>{267DE92E-BA07-4427-B09B-F9B67F98DC07}</ProjectGuid>
     <ApplicationIcon>icon2.ico</ApplicationIcon>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendPlatformToOutputPath>false</AppendPlatformToOutputPath>
     <Platforms>x86</Platforms>
