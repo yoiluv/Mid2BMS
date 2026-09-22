@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace Mid2BMS.CharacterizationTests
 {
@@ -14,9 +16,11 @@ namespace Mid2BMS.CharacterizationTests
         private const string SettingsFileName = "fixture.properties";
         private const string InputFileName = "input.mid";
 
+        [STAThread]
         private static int Main(string[] args)
         {
             CoreInteraction.Current = new CharacterizationInteraction();
+            AssertPhase14UiContracts();
             bool accept = args.Any(x => String.Equals(x, "--accept", StringComparison.OrdinalIgnoreCase));
             string repositoryRoot = GetArgumentValue(args, "--repository-root") ?? FindRepositoryRoot();
             string fixturesRoot = Path.Combine(repositoryRoot, "tests", "fixtures");
@@ -118,6 +122,76 @@ namespace Mid2BMS.CharacterizationTests
                 Console.Error.WriteLine("- " + failure);
             }
             return 1;
+        }
+
+        private static void AssertPhase14UiContracts()
+        {
+            if (!(Form1.CreateNamingStrategy(0) is LegacyKeySoundNamingStrategy)
+                || !(Form1.CreateNamingStrategy(1) is SequentialKeySoundNamingStrategy)
+                || !(Form1.CreateNamingStrategy(2) is TrackSequentialKeySoundNamingStrategy))
+                throw new InvalidOperationException("The File Naming selector is not mapped to the expected strategies.");
+
+            if (Form2.ValidateTrackSettings(new TrackSettings
+            {
+                Mode = TrackMode.Red,
+                IsOneShot = true,
+            }, true) != null)
+                throw new InvalidOperationException("Red OneShot should be available in the track settings UI.");
+
+            if (Form2.ValidateTrackSettings(new TrackSettings
+            {
+                Mode = TrackMode.Purple,
+                IsChord = true,
+            }, false) == null)
+                throw new InvalidOperationException("Purple Chord should be rejected by the track settings UI.");
+
+            if (Form2.ValidateTrackSettings(new TrackSettings
+            {
+                Mode = TrackMode.Red,
+                IsXChain = true,
+            }, true) != null)
+                throw new InvalidOperationException("Red XChain should be available when SequenceLayer is enabled.");
+
+            if (Form2.ValidateTrackSettings(new TrackSettings
+            {
+                Mode = TrackMode.Blue,
+                IsXChain = true,
+            }, true) == null)
+                throw new InvalidOperationException("XChain should be rejected for non-Red tracks.");
+
+            using (var mainForm = new Form1())
+            {
+                ComboBox namingSelector = mainForm.Controls.Find("comboBox_fileNaming", true)
+                    .OfType<ComboBox>().Single();
+                if (namingSelector.Items.Count != 3 || namingSelector.SelectedIndex != 0)
+                    throw new InvalidOperationException("The File Naming selector has unexpected items or default.");
+            }
+
+            using (var trackForm = new Form2())
+            {
+                trackForm.TrackName_csv = "Tr\tnta\tntm\tTrackName\r\n\t(waves)\t(notes)\t\r\n0\t1\t1\tKick\r\n";
+                trackForm.TrackNames = new List<string> { "Kick" };
+                trackForm.InstrumentNames = new List<string> { "Drums" };
+                trackForm.SetMode(true, false, false);
+
+                typeof(Form2).GetField("changeEnabled", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .SetValue(trackForm, true);
+                typeof(Form2).GetMethod("SetTable", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(trackForm, new object[] { true });
+
+                DataGridView grid = trackForm.Controls.Find("dataGridView1", true)
+                    .OfType<DataGridView>().Single();
+                if (!(grid.Columns[6] is DataGridViewComboBoxColumn))
+                    throw new InvalidOperationException("The track Mode column is not a ComboBox.");
+
+                grid.Rows[0].Cells[6].Value = TrackMode.Red.ToString();
+                if (grid.Rows[0].Cells[11].ReadOnly)
+                    throw new InvalidOperationException("XChain was not enabled for a Red track with SequenceLayer.");
+
+                grid.Rows[0].Cells[6].Value = TrackMode.Purple.ToString();
+                if (!grid.Rows[0].Cells[9].ReadOnly)
+                    throw new InvalidOperationException("Chord was not disabled for a Purple track.");
+            }
         }
 
         private sealed class CharacterizationInteraction : ICoreInteraction

@@ -29,6 +29,21 @@ namespace Mid2BMS
             InitializeComponent();
         }
 
+        internal static IKeySoundNamingStrategy CreateNamingStrategy(int selectedIndex)
+        {
+            switch (selectedIndex)
+            {
+                case 0:
+                    return new LegacyKeySoundNamingStrategy();
+                case 1:
+                    return new SequentialKeySoundNamingStrategy();
+                case 2:
+                    return new TrackSequentialKeySoundNamingStrategy();
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(selectedIndex));
+            }
+        }
+
         /// <summary>
         /// ファイルがドラッグ＆ドロップされたときのsenderとeを使用して、
         /// ディレクトリ名とファイル名を返します。
@@ -145,6 +160,7 @@ namespace Mid2BMS
             bool createExFiles = checkBox_createExtraFiles.Checked;
             bool sequenceLayer = checkBox_seqLayer.Checked;
             int WavidSpacing = Int32.Parse(textBox_WavidSpacing.Text);
+            MyFormInstance.NamingStrategy = CreateNamingStrategy(comboBox_fileNaming.SelectedIndex);
 
             int newtimebase = Int32.Parse(textBox_newTimebase2.Text);
             int velocityStep = Int32.Parse(textBox_velocitystep.Text);

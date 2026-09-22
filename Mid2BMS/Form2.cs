@@ -15,6 +15,8 @@ namespace Mid2BMS
         {
             RedoRequired = false;
             InitializeComponent();
+            dataGridView1.CurrentCellDirtyStateChanged += dataGridView1_CurrentCellDirtyStateChanged;
+            dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
         }
 
         DataSet data_set;
@@ -27,7 +29,6 @@ namespace Mid2BMS
         // XChain + その他 は不可 (サイドチェイン以外は無視されるため)
         // Purple + Chord は不可 (ポルタメントを適用する順序が一意でないため)
         // XChain は RedMode かつシーケンスレイヤーの場合のみ可
-        // RedMode + OneShot は意味が無いので一応不可
         //**************************************************
 
         //################ 入出力パラメータ ################
@@ -61,12 +62,14 @@ namespace Mid2BMS
         //##################################################
 
         bool changeEnabled = false;
+        bool updatingModeAvailability = false;
 
-        readonly int COLUMN_DRUMS = 6;  // 順序変更有り、また、この数値のみを変更しないこと
-        readonly int COLUMN_ONESHOT = 7;
-        readonly int COLUMN_CHORD = 8;
-        readonly int COLUMN_IGNORE = 9;
-        readonly int COLUMN_XCHAIN = 10;
+        const int COLUMN_MODE = 6;
+        const int COLUMN_DRUMS = 7;
+        const int COLUMN_ONESHOT = 8;
+        const int COLUMN_CHORD = 9;
+        const int COLUMN_IGNORE = 10;
+        const int COLUMN_XCHAIN = 11;
         
         public void SetMode(bool isSequenceLayer, bool isRedMode, bool isPurpleMode)
         {
@@ -88,27 +91,29 @@ namespace Mid2BMS
                 //######## パラメータの妥当性のチェック ########
                 for (int i = 0; i < data_table.Rows.Count; i++)
                 {
+                    TrackMode mode;
+                    if (!Enum.TryParse(data_table.Rows[i][COLUMN_MODE].ToString(), out mode))
+                    {
+                        MessageBox.Show(this, "Modeを選択してください。", "Invalid Parameter");
+                        return;
+                    }
                     bool isDrums = (bool)data_table.Rows[i][COLUMN_DRUMS];
                     bool isOneShot = (bool)data_table.Rows[i][COLUMN_ONESHOT];
                     bool isChord = (bool)data_table.Rows[i][COLUMN_CHORD];
                     bool ignore = (bool)data_table.Rows[i][COLUMN_IGNORE];
                     bool isXChain = (bool)data_table.Rows[i][COLUMN_XCHAIN];
-
-                    if (isChord && isDrums)
+                    string validationError = ValidateTrackSettings(new TrackSettings
                     {
-                        MessageBox.Show(this, "Chord? と Drums? を同時にチェックすることはできません。設定を確認してください。", "Invalid Parameter");
-                        return;
-                    }
-
-                    if (ignore && (isOneShot || isChord || isDrums || isXChain))
+                        Mode = mode,
+                        IsDrums = isDrums,
+                        IsOneShot = isOneShot,
+                        IsChord = isChord,
+                        Ignore = ignore,
+                        IsXChain = isXChain,
+                    }, IsSequenceLayer);
+                    if (validationError != null)
                     {
-                        MessageBox.Show(this, "Ignore? がチェックされる場合、これは単独でチェックされなければなりません。設定を確認してください。", "Invalid Parameter");
-                        return;
-                    }
-
-                    if (isXChain && (isOneShot || isChord || isDrums))
-                    {
-                        MessageBox.Show(this, "XChain? がチェックされる場合、これは単独でチェックされなければなりません。設定を確認してください。", "Invalid Parameter");
+                        MessageBox.Show(this, validationError, "Invalid Parameter");
                         return;
                     }
                 }
@@ -133,14 +138,15 @@ namespace Mid2BMS
                 {
                     int tracknumber = (System.Int32)(data_table.Rows[i][0]);
                     TrackNames[tracknumber] = data_table.Rows[i][5].ToString();
-                    IsDrumsList[tracknumber] = (bool)data_table.Rows[i][6];
-                    IsOneShotList[tracknumber] = (bool)data_table.Rows[i][7];  // 順序変更有り
-                    IsChordList[tracknumber] = (bool)data_table.Rows[i][8];
-                    IgnoreList[tracknumber] = (bool)data_table.Rows[i][9];
-                    IsXChainList[tracknumber] = (bool)data_table.Rows[i][10];
+                    TrackMode mode = (TrackMode)Enum.Parse(typeof(TrackMode), data_table.Rows[i][COLUMN_MODE].ToString());
+                    IsDrumsList[tracknumber] = (bool)data_table.Rows[i][COLUMN_DRUMS];
+                    IsOneShotList[tracknumber] = (bool)data_table.Rows[i][COLUMN_ONESHOT];
+                    IsChordList[tracknumber] = (bool)data_table.Rows[i][COLUMN_CHORD];
+                    IgnoreList[tracknumber] = (bool)data_table.Rows[i][COLUMN_IGNORE];
+                    IsXChainList[tracknumber] = (bool)data_table.Rows[i][COLUMN_XCHAIN];
                     settings[tracknumber] = new TrackSettings
                     {
-                        Mode = GetGlobalTrackMode(),
+                        Mode = mode,
                         IsDrums = IsDrumsList[tracknumber],
                         IsOneShot = IsOneShotList[tracknumber],
                         IsChord = IsChordList[tracknumber],
@@ -186,6 +192,86 @@ namespace Mid2BMS
         {
             return Mid2BMS.TrackSettings.FromLegacyGlobalMode(IsRedMode, IsPurpleMode);
         }
+
+        internal static string ValidateTrackSettings(TrackSettings settings, bool isSequenceLayer)
+        {
+            if (settings.IsChord && settings.IsDrums)
+                return "Chord? と Drums? を同時にチェックすることはできません。設定を確認してください。";
+            if (settings.Ignore && (settings.IsOneShot || settings.IsChord || settings.IsDrums || settings.IsXChain))
+                return "Ignore? がチェックされる場合、これは単独でチェックされなければなりません。設定を確認してください。";
+            if (settings.IsXChain && (settings.IsOneShot || settings.IsChord || settings.IsDrums))
+                return "XChain? がチェックされる場合、これは単独でチェックされなければなりません。設定を確認してください。";
+            if (settings.Mode == TrackMode.Purple && settings.IsChord)
+                return "PurpleのトラックではChord?を使用できません。設定を確認してください。";
+            if (settings.IsXChain && (settings.Mode != TrackMode.Red || !isSequenceLayer))
+                return "XChain? はRedのトラックかつSequenceLayer有効時のみ使用できます。設定を確認してください。";
+            return null;
+        }
+
+        private void dataGridView1_CurrentCellDirtyStateChanged(object sender, EventArgs e)
+        {
+            if (dataGridView1.IsCurrentCellDirty)
+                dataGridView1.CommitEdit(DataGridViewDataErrorContexts.Commit);
+        }
+
+        private void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (!changeEnabled || updatingModeAvailability || e.RowIndex < 0 || e.ColumnIndex != COLUMN_MODE)
+                return;
+            UpdateRowModeAvailability(dataGridView1.Rows[e.RowIndex]);
+        }
+
+        private void UpdateAllRowModeAvailability()
+        {
+            foreach (DataGridViewRow row in dataGridView1.Rows)
+                UpdateRowModeAvailability(row);
+        }
+
+        private void UpdateRowModeAvailability(DataGridViewRow row)
+        {
+            TrackMode mode;
+            if (row.IsNewRow || !Enum.TryParse(Convert.ToString(row.Cells[COLUMN_MODE].Value), out mode))
+                return;
+
+            updatingModeAvailability = true;
+            try
+            {
+                SetCellAvailability(row.Cells[COLUMN_CHORD], mode != TrackMode.Purple);
+                SetCellAvailability(row.Cells[COLUMN_XCHAIN], mode == TrackMode.Red && IsSequenceLayer);
+            }
+            finally
+            {
+                updatingModeAvailability = false;
+            }
+        }
+
+        private static void SetCellAvailability(DataGridViewCell cell, bool enabled)
+        {
+            if (!enabled && cell.Value is bool && (bool)cell.Value)
+                cell.Value = false;
+            cell.ReadOnly = !enabled;
+            cell.Style.BackColor = enabled ? SystemColors.Window : SystemColors.Control;
+            cell.Style.ForeColor = enabled ? SystemColors.WindowText : SystemColors.GrayText;
+        }
+
+        private void ConfigureModeColumn()
+        {
+            DataGridViewColumn generatedColumn = dataGridView1.Columns[COLUMN_MODE];
+            dataGridView1.Columns.Remove(generatedColumn);
+
+            var modeColumn = new DataGridViewComboBoxColumn
+            {
+                Name = "Mode",
+                HeaderText = "Mode",
+                DataPropertyName = "Mode",
+                DisplayStyle = DataGridViewComboBoxDisplayStyle.ComboBox,
+                FlatStyle = FlatStyle.Flat,
+                ValueType = typeof(string),
+            };
+            modeColumn.Items.AddRange(Enum.GetNames(typeof(TrackMode)));
+            dataGridView1.Columns.Insert(COLUMN_MODE, modeColumn);
+        }
+
         private void SetTable(bool showDetail) {
             // ん、datagridとdatagridviewって違うのか
             // http://msdn.microsoft.com/ja-jp/library/ms171628(v=vs.110).aspx
@@ -216,8 +302,9 @@ namespace Mid2BMS
                 data_table.Columns.Add("TrackName", Type.GetType("System.String"));
                 data_table.Columns.Add("InstName", Type.GetType("System.String"));
                 data_table.Columns.Add("New TrackName (Edit This Col)", Type.GetType("System.String"));
+                data_table.Columns.Add("Mode", Type.GetType("System.String"));
                 data_table.Columns.Add("Drums?", Type.GetType("System.Boolean"));
-                data_table.Columns.Add("OheShot?", Type.GetType("System.Boolean"));  // 順序変更有り
+                data_table.Columns.Add("OneShot?", Type.GetType("System.Boolean"));
                 data_table.Columns.Add("Chord?", Type.GetType("System.Boolean"));
                 data_table.Columns.Add("Ignore?", Type.GetType("System.Boolean"));
                 data_table.Columns.Add("XChain?", Type.GetType("System.Boolean"));
@@ -249,11 +336,12 @@ namespace Mid2BMS
                         data_row[3] = TrackNames[rowi];
                         data_row[4] = InstrumentNames[rowi];
                         data_row[5] = mycells[3];
-                        data_row[6] = false;
-                        data_row[7] = false;  // 順序変更有り
-                        data_row[8] = false;
-                        data_row[9] = false;
-                        data_row[10] = false;
+                        data_row[COLUMN_MODE] = GetGlobalTrackMode().ToString();
+                        data_row[COLUMN_DRUMS] = false;
+                        data_row[COLUMN_ONESHOT] = false;
+                        data_row[COLUMN_CHORD] = false;
+                        data_row[COLUMN_IGNORE] = false;
+                        data_row[COLUMN_XCHAIN] = false;
                     }
                     else
                     {
@@ -274,18 +362,19 @@ namespace Mid2BMS
 
             if (showDetail)
             {
+                ConfigureModeColumn();
                 dataGridView1.Columns[3].ReadOnly = true;
                 dataGridView1.Columns[4].ReadOnly = true;
                 dataGridView1.Columns[5].ReadOnly = false;
-                dataGridView1.Columns[6].ReadOnly = false;
-                dataGridView1.Columns[7].ReadOnly = false;  // 順序変更有り
-                dataGridView1.Columns[8].ReadOnly = false;  // Chord?
-                dataGridView1.Columns[9].ReadOnly = false;
-                dataGridView1.Columns[10].ReadOnly = false;
+                dataGridView1.Columns[COLUMN_MODE].ReadOnly = false;
+                dataGridView1.Columns[COLUMN_DRUMS].ReadOnly = false;
+                dataGridView1.Columns[COLUMN_ONESHOT].ReadOnly = false;
+                dataGridView1.Columns[COLUMN_CHORD].ReadOnly = false;
+                dataGridView1.Columns[COLUMN_IGNORE].ReadOnly = false;
+                dataGridView1.Columns[COLUMN_XCHAIN].ReadOnly = false;
 
-                dataGridView1.Columns[COLUMN_CHORD].Visible = !IsPurpleMode;
-                dataGridView1.Columns[COLUMN_XCHAIN].Visible = IsRedMode && IsSequenceLayer;
-                dataGridView1.Columns[COLUMN_ONESHOT].Visible = !IsRedMode;
+                dataGridView1.Columns[COLUMN_XCHAIN].Visible = IsSequenceLayer;
+                UpdateAllRowModeAvailability();
             }
             else
             {

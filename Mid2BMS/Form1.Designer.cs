@@ -65,6 +65,8 @@
             this.radioButton_purple = new System.Windows.Forms.RadioButton();
             this.radioButton_red = new System.Windows.Forms.RadioButton();
             this.radioButton_blue = new System.Windows.Forms.RadioButton();
+            this.comboBox_fileNaming = new System.Windows.Forms.ComboBox();
+            this.label_fileNaming = new System.Windows.Forms.Label();
             this.textBox_vacantWavidUpdated = new System.Windows.Forms.TextBox();
             this.button11 = new System.Windows.Forms.Button();
             this.label13 = new System.Windows.Forms.Label();
@@ -367,6 +369,8 @@
             // 
             // tabPage4
             // 
+            this.tabPage4.Controls.Add(this.comboBox_fileNaming);
+            this.tabPage4.Controls.Add(this.label_fileNaming);
             this.tabPage4.Controls.Add(this.panel_advancedsettings1);
             this.tabPage4.Controls.Add(this.label33);
             this.tabPage4.Controls.Add(this.panel2);
@@ -554,7 +558,31 @@
             this.radioButton_blue.TabStop = true;
             this.toolTip1.SetToolTip(this.radioButton_blue, resources.GetString("radioButton_blue.ToolTip"));
             this.radioButton_blue.UseVisualStyleBackColor = true;
-            // 
+            //
+            // comboBox_fileNaming
+            //
+            this.comboBox_fileNaming.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.comboBox_fileNaming.FormattingEnabled = true;
+            this.comboBox_fileNaming.Items.AddRange(new object[] {
+            "Legacy",
+            "Sequential",
+            "Track + Sequential"});
+            this.comboBox_fileNaming.Location = new System.Drawing.Point(474, 154);
+            this.comboBox_fileNaming.Name = "comboBox_fileNaming";
+            this.comboBox_fileNaming.Size = new System.Drawing.Size(162, 20);
+            this.comboBox_fileNaming.TabIndex = 13;
+            this.comboBox_fileNaming.SelectedIndex = 0;
+            this.toolTip1.SetToolTip(this.comboBox_fileNaming, "Select the naming rule used by BMS #WAV definitions and WaveSplitter output.");
+            //
+            // label_fileNaming
+            //
+            this.label_fileNaming.AutoSize = true;
+            this.label_fileNaming.Location = new System.Drawing.Point(397, 158);
+            this.label_fileNaming.Name = "label_fileNaming";
+            this.label_fileNaming.Size = new System.Drawing.Size(65, 12);
+            this.label_fileNaming.TabIndex = 12;
+            this.label_fileNaming.Text = "File Naming";
+            //
             // textBox_vacantWavidUpdated
             // 
             resources.ApplyResources(this.textBox_vacantWavidUpdated, "textBox_vacantWavidUpdated");
@@ -2052,6 +2080,8 @@
         private System.Windows.Forms.CheckBox checkBox_createExtraFiles;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.ComboBox comboBox_fileNaming;
+        private System.Windows.Forms.Label label_fileNaming;
         private System.Windows.Forms.Label label32;
         private System.Windows.Forms.RadioButton radioButton_purple;
         private System.Windows.Forms.RadioButton radioButton_red;
@@ -2212,4 +2242,3 @@
         private System.Windows.Forms.TextBox textBox_maxLayerCount;
     }
 }
-
