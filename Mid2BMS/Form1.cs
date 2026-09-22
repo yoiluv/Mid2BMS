@@ -27,6 +27,7 @@ namespace Mid2BMS
         public Form1()
         {
             InitializeComponent();
+            Text = "Mid2BMS - BMS Improved Development Environment (" + Application.ProductVersion + ")";
         }
 
         internal static IKeySoundNamingStrategy CreateNamingStrategy(int selectedIndex)

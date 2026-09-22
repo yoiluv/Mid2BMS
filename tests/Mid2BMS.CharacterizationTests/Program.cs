@@ -161,6 +161,8 @@ namespace Mid2BMS.CharacterizationTests
 
             using (var mainForm = new Form1())
             {
+                if (!mainForm.Text.Contains(Application.ProductVersion, StringComparison.Ordinal))
+                    throw new InvalidOperationException("The application title does not show the product version.");
                 ComboBox namingSelector = mainForm.Controls.Find("comboBox_fileNaming", true)
                     .OfType<ComboBox>().Single();
                 if (namingSelector.Items.Count != 3 || namingSelector.SelectedIndex != 0)

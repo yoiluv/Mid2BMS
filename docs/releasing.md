@@ -5,16 +5,16 @@
 Windows上でリポジトリのルートから次を実行する。
 
 ```powershell
-.\scripts\package-release.ps1 -Version v20260922
+.\scripts\package-release.ps1 -Version v20260923
 ```
 
 スクリプトは回帰テストを実行した後、Windows x64向けの自己完結版を`dotnet publish`し、README、リリースノート、MITライセンス、NVorbisのMs-PLライセンスを同梱する。生成先は次のとおり。
 
 ```text
 artifacts/release/
- ├ Mid2BMS-v20260922-win-x64/
- ├ Mid2BMS-v20260922-win-x64.zip
- └ Mid2BMS-v20260922-win-x64.zip.sha256
+ ├ Mid2BMS-v20260923-win-x64/
+ ├ Mid2BMS-v20260923-win-x64.zip
+ └ Mid2BMS-v20260923-win-x64.zip.sha256
 ```
 
 自己完結版なので利用者による.NET Desktop Runtimeの追加インストールは不要。trimとsingle-file化は、legacy WinForms・resource・ファイル配置への影響を避けるため使用しない。

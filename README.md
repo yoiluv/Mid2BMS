@@ -4,12 +4,12 @@ This is a tool to help convert .mid to .bms.
 
 ## Current release
 
-`v20260922` is distributed as a self-contained Windows x64 ZIP. Extract the ZIP and run `Mid2BMS.exe`; a separate .NET installation is not required. Release contents and known limitations are listed in [`docs/releases/v20260922.md`](docs/releases/v20260922.md).
+`v20260923` is distributed as a self-contained Windows x64 ZIP. Extract the ZIP and run `Mid2BMS.exe`; a separate .NET installation is not required. Release contents and known limitations are listed in [`docs/releases/v20260923.md`](docs/releases/v20260923.md).
 
 Maintainers can reproduce the package with:
 
 ```powershell
-.\scripts\package-release.ps1 -Version v20260922
+.\scripts\package-release.ps1 -Version v20260923
 ```
 
 これは.midファイルを.bmsに変換するソフトです。  
