@@ -138,6 +138,7 @@ namespace Mid2BMS
             int VacantWavid = BMSParser.IntFromHex36(textBox_vacantWavid.Text);  // 例外は親メソッドでcatchするw
             bool isRedMode = radioButton_red.Checked;
             bool isPurpleMode = radioButton_purple.Checked;
+            TrackMode defaultTrackMode = TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode);
             String margintime_beats = textBox_margintime.Text;
             int DefVacantBMSChIdx = checkBox_NoPlace11to29.Checked ? 16 : 0;
             bool LookAtInstrumentName = radioButton2.Checked;
@@ -184,11 +185,38 @@ namespace Mid2BMS
             // Javaって組み込みとかで頑張ってそうだからC#とはいい感じに住み分けが出来てるのかな？
 
             Action mid2bms_proc = () =>
-                MyFormInstance.Mid2BMS_Process(
-                    isRedMode, isPurpleMode, createExFiles, ref VacantWavid, ref DefVacantBMSChIdx,
-                    LookAtInstrumentName, margintime_beats, WavidSpacing, out trackCsv, ref MidiTrackNames, out MidiInstrumentNames,
-                    trackSettings, sequenceLayer, newtimebase, velocityStep,
-                    ref ProgressBarValue, ref ProgressBarFinished);
+            {
+                var request = new Mid2BmsConversionRequest
+                {
+                    DefaultTrackMode = defaultTrackMode,
+                    TrackSettings = trackSettings,
+                    TrackNames = MidiTrackNames,
+                    CreateExtraFiles = createExFiles,
+                    LookAtInstrumentName = LookAtInstrumentName,
+                    MarginTimeBeats = margintime_beats,
+                    WavIdSpacing = WavidSpacing,
+                    SequenceLayer = sequenceLayer,
+                    NewTimebase = newtimebase,
+                    VelocityStep = velocityStep,
+                    StartingWavId = VacantWavid,
+                    StartingBmsChannelIndex = DefVacantBMSChIdx,
+                };
+                Mid2BmsConversionResult result = MyFormInstance.Mid2BMS_Process(
+                    request, ref ProgressBarValue, ref ProgressBarFinished);
+                if (result.Cancelled)
+                {
+                    trackCsv = null;
+                    MidiTrackNames = null;
+                    MidiInstrumentNames = null;
+                    return;
+                }
+
+                VacantWavid = result.NextWavId;
+                DefVacantBMSChIdx = result.NextBmsChannelIndex;
+                trackCsv = result.TrackCsv;
+                MidiTrackNames = new List<string>(result.TrackNames);
+                MidiInstrumentNames = new List<string>(result.InstrumentNames);
+            };
 
             InitializeProgressBar();  // これを実行したら必ずanotherThreadが走るようにする
 

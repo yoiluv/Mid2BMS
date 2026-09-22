@@ -415,6 +415,28 @@ namespace Mid2BMS.Core.Tests
             {
                 new TrackSettings { Mode = TrackMode.Blue, IsXChain = true },
             }, true), "Phase 12 accepted XChain on a non-Red track.");
+
+            var unifiedRequest = new Mid2BmsConversionRequest
+            {
+                DefaultTrackMode = TrackMode.Purple,
+                MarginTimeBeats = "12.0",
+                NewTimebase = 48,
+                VelocityStep = 1,
+            };
+            IReadOnlyList<TrackSettings> requestDefaults = unifiedRequest.ResolveTrackSettings(2);
+            Assert(requestDefaults.All(x => x.Mode == TrackMode.Purple),
+                "Unified request did not apply its default TrackMode.");
+
+            IReadOnlyList<TrackSettings> requestedMix = (unifiedRequest with
+            {
+                TrackSettings = new[]
+                {
+                    new TrackSettings { Mode = TrackMode.Blue },
+                    new TrackSettings { Mode = TrackMode.Red },
+                },
+            }).ResolveTrackSettings(2);
+            Assert(requestedMix[0].Mode == TrackMode.Blue && requestedMix[1].Mode == TrackMode.Red,
+                "Unified request did not prioritize explicit TrackSettings.");
         }
 
         private static string NewTemporaryDirectory()

@@ -19,14 +19,26 @@ namespace Mid2BMS
             this.namingStrategy = namingStrategy ?? new LegacyKeySoundNamingStrategy();
         }
 
-        public void Run(
-            bool isRedMode, bool isPurpleMode, bool createExFiles, ref int VacantWavid, ref int DefaultVacantBMSChannelIdx,
-            bool LookAtInstrumentName, String margintime_beats, int WavidSpacing,
-            out String trackCsv, ref List<String> MidiTrackNames, out List<String> MidiInstrumentNames,
-            IReadOnlyList<TrackSettings> trackSettings, bool sequenceLayer,
-            int newTimebase, int velocityStep,
+        public Mid2BmsConversionResult Run(Mid2BmsConversionRequest request,
             ref double ProgressBarValue, ref bool ProgressBarFinished)
         {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            request.Validate();
+
+            bool createExFiles = request.CreateExtraFiles;
+            int VacantWavid = request.StartingWavId;
+            int DefaultVacantBMSChannelIdx = request.StartingBmsChannelIndex;
+            bool LookAtInstrumentName = request.LookAtInstrumentName;
+            string margintime_beats = request.MarginTimeBeats;
+            int WavidSpacing = request.WavIdSpacing;
+            bool sequenceLayer = request.SequenceLayer;
+            int newTimebase = request.NewTimebase;
+            int velocityStep = request.VelocityStep;
+            string trackCsv;
+            List<string> MidiTrackNames = request.TrackNames == null
+                ? null
+                : request.TrackNames.ToList();
+            List<string> MidiInstrumentNames;
             Func<Stream> quantizedMidiStreamGenerator;
 
             #region Midiのクオンタイズ
@@ -188,9 +200,11 @@ namespace Mid2BMS
             m2m.Process(quantizedMidiStreamGenerator(), PathBase + @"text0_stdout_part1.txt", out MMLs,
                 out MidiTrackNames, out MidiInstrumentNames, createExFiles, ref ProgressBarValue, 0.00, 0.10);
 
-            TrackMode globalMode = TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode);
             IReadOnlyList<TrackSettings> normalizedTrackSettings =
-                TrackSettings.NormalizeForConversion(MMLs.Count, globalMode, trackSettings, sequenceLayer);
+                request.ResolveTrackSettings(MMLs.Count);
+            if (MidiTrackIdentifier != null && MidiTrackIdentifier.Count != MMLs.Count)
+                throw new ArgumentException(
+                    "TrackNames count must match the MIDI track count.", nameof(request));
 
             if (MidiTrackIdentifier == null)
             {
@@ -260,75 +274,25 @@ namespace Mid2BMS
             }
             #endregion
 
-            #region RedModeの場合のMidi書き出し処理
-
-            // RedModeの場合はmidiをSplitしたものを提出する
-            // ignoreListをちゃんと見て！
-
-            if (normalizedTrackSettings.Any(x => x.Mode == TrackMode.Red))
-            {
-                MidiStruct ms2 = new MidiStruct(quantizedMidiStreamGenerator(), true);
-
-                bool hasNonRedTrack = normalizedTrackSettings.Any(x => x.Mode != TrackMode.Red);
-                if (hasNonRedTrack)
-                {
-                    MidiStruct mixedMidi = new MixedModeMidiBuilder().Build(ms2,
-                        mw.GeneratedSingleNoteMidi, mw.GeneratedTracksBySourceIndex,
-                        normalizedTrackSettings, sequenceLayer, margintime_beats);
-                    string suffix = TrackSettings.GetModeSuffix(normalizedTrackSettings);
-                    mixedMidi.Export(neu.IFileStream(
-                        PathBase + @"text3_tanon_smf_" + suffix + @".mid",
-                        FileMode.Create, FileAccess.Write), true);
-                }
-                else
-                {
-
-                    int margintime_beats_int = (int)Math.Ceiling(Convert.ToDouble(margintime_beats));
-                    MidiTrack.SPLIT_BEATS_INTERVAL = margintime_beats_int + 4;
-                    MidiTrack.SPLIT_BEATS_AUTOMATIONLEFT = 2;
-                    MidiTrack.SPLIT_BEATS_AUTOMATIONRIGHT = margintime_beats_int + 0;
-
-                    for (int trid = 0; trid < normalizedTrackSettings.Count; trid++)
-                    {
-                        if (normalizedTrackSettings[trid].Ignore)
-                        {
-                            ms2.tracks[trid] = new MidiTrack(ms2.tracks[trid].Where(x => !(x is MidiEventNote)));
-                        }
-                    }
-
-                    if (!sequenceLayer)  // シーケンスレイヤーとして書き出す（テンポチェンジを含む場合はチェックしてください）
-                    {
-                        for (int i = 1; i < ms2.tracks.Count; i++)  // 1から処理
-                        {
-                            bool isChordMode = normalizedTrackSettings[i].IsChord;
-                            ms2.tracks[i] = ms2.tracks[i].SplitNotes(ms2, isChordMode);  // コンダクタートラックはそのままにする(主にテンポ保持のため)
-                        }
-                    }
-                    else
-                    {
-                        // ノート数が5000を超える場合は中断しても良いと思う(でもノート数よりオートメーションが極端に多いと問題の解決にならない)
-                        // 小節数が9999を超える場合はさすがに中断しよう
-                        try
-                        {
-                            var directsum = MidiTrack.DirectSum(ms2.tracks);
-                            List<bool> isChordList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsChord);
-                            List<bool> isXChainList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsXChain);
-                            var splitted = MidiTrack.SplitNotes(directsum, ms2, isChordList, isXChainList);
-                            ms2.tracks = MidiTrack.DirectDifference(splitted);
-                        }
-                        catch (Exception e)
-                        {
-                            CoreInteraction.ShowMessage(e.ToString());
-                        }
-                    }
-
-                    ms2.Export(neu.IFileStream(PathBase + @"text3_tanon_smf_red.mid", FileMode.Create, FileAccess.Write), true);
-                }
-            }
+            #region 単音化MIDIの統合出力
+            MidiStruct singleNoteMidi = new SingleNoteMidiBuilder().Build(
+                quantizedMidiStreamGenerator, mw, normalizedTrackSettings,
+                sequenceLayer, margintime_beats);
+            string modeSuffix = TrackSettings.GetModeSuffix(normalizedTrackSettings);
+            singleNoteMidi.Export(neu.IFileStream(
+                PathBase + @"text3_tanon_smf_" + modeSuffix + @".mid",
+                FileMode.Create, FileAccess.Write), true);
             #endregion
 
             ProgressBarValue = 1.00;
             ProgressBarFinished = true;
+            return new Mid2BmsConversionResult(false, trackCsv,
+                MidiTrackNames, MidiInstrumentNames,
+                VacantWavid, DefaultVacantBMSChannelIdx,
+                normalizedTrackSettings, modeSuffix,
+                PathBase + @"text3_tanon_smf_" + modeSuffix + @".mid",
+                PathBase + @"text6_bms_" + modeSuffix + @".txt",
+                PathBase + @"text5_renamer_array.txt");
         }
     }
 }

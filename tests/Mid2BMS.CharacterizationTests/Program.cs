@@ -212,13 +212,36 @@ namespace Mid2BMS.CharacterizationTests
             }
             if (useTrackSettings)
             {
-                target.Mid2BMS_Process(isRedMode, isPurpleMode, ParseBool(settings, "createExtraFiles"),
-                    ref vacantWavid, ref vacantBmsChannelIndex, ParseBool(settings, "lookAtInstrumentName"),
-                    GetRequiredSetting(settings, "marginTimeBeats"),
-                    wavidSpacing ?? ParseInt(settings, "wavidSpacing"), out trackCsv,
-                    ref midiTrackNames, out midiInstrumentNames, trackSettings,
-                    sequenceLayer, ParseInt(settings, "newTimebase"),
-                    ParseInt(settings, "velocityStep"), ref progressValue, ref progressFinished);
+                var request = new Mid2BmsConversionRequest
+                {
+                    DefaultTrackMode = TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode),
+                    TrackSettings = trackSettings,
+                    TrackNames = midiTrackNames,
+                    CreateExtraFiles = ParseBool(settings, "createExtraFiles"),
+                    LookAtInstrumentName = ParseBool(settings, "lookAtInstrumentName"),
+                    MarginTimeBeats = GetRequiredSetting(settings, "marginTimeBeats"),
+                    WavIdSpacing = wavidSpacing ?? ParseInt(settings, "wavidSpacing"),
+                    SequenceLayer = sequenceLayer,
+                    NewTimebase = ParseInt(settings, "newTimebase"),
+                    VelocityStep = ParseInt(settings, "velocityStep"),
+                    StartingWavId = vacantWavid,
+                    StartingBmsChannelIndex = vacantBmsChannelIndex,
+                };
+                Mid2BmsConversionResult result = target.Mid2BMS_Process(
+                    request, ref progressValue, ref progressFinished);
+                if (result.Cancelled)
+                    throw new InvalidOperationException("The unified conversion workflow was cancelled.");
+                if (result.TrackSettings.Count != trackCount ||
+                    !File.Exists(result.SingleNoteMidiPath) ||
+                    !File.Exists(result.BmsPath) ||
+                    !File.Exists(result.KeySoundManifestPath))
+                    throw new InvalidOperationException(
+                        "The unified conversion result did not expose its generated artifacts.");
+                vacantWavid = result.NextWavId;
+                vacantBmsChannelIndex = result.NextBmsChannelIndex;
+                trackCsv = result.TrackCsv;
+                midiTrackNames = new List<string>(result.TrackNames);
+                midiInstrumentNames = new List<string>(result.InstrumentNames);
             }
             else
             {

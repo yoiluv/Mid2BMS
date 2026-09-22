@@ -49,10 +49,10 @@ namespace Mid2BMS
         }
 
         internal static IReadOnlyList<TrackSettings> NormalizeForConversion(int trackCount,
-            TrackMode legacyGlobalMode, IReadOnlyList<TrackSettings> settings, bool sequenceLayer)
+            TrackMode defaultMode, IReadOnlyList<TrackSettings> settings, bool sequenceLayer)
         {
             if (settings == null)
-                return FromLegacyFlags(trackCount, legacyGlobalMode, null, null, null, null, null);
+                return FromLegacyFlags(trackCount, defaultMode, null, null, null, null, null);
             if (settings.Count != trackCount)
                 throw new ArgumentException("TrackSettings count must match the MIDI track count.", nameof(settings));
 

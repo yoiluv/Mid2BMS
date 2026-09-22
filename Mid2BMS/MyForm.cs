@@ -88,26 +88,50 @@ namespace Mid2BMS
             int newTimebase, int velocityStep,
             ref double ProgressBarValue, ref bool ProgressBarFinished)
         {
+            var request = new Mid2BmsConversionRequest
+            {
+                DefaultTrackMode = TrackSettings.FromLegacyGlobalMode(isRedMode, isPurpleMode),
+                TrackSettings = trackSettings,
+                TrackNames = MidiTrackNames,
+                CreateExtraFiles = createExFiles,
+                LookAtInstrumentName = LookAtInstrumentName,
+                MarginTimeBeats = margintime_beats,
+                WavIdSpacing = WavidSpacing,
+                SequenceLayer = sequenceLayer,
+                NewTimebase = newTimebase,
+                VelocityStep = velocityStep,
+                StartingWavId = VacantWavid,
+                StartingBmsChannelIndex = DefaultVacantBMSChannelIdx,
+            };
+            Mid2BmsConversionResult result = Mid2BMS_Process(request,
+                ref ProgressBarValue, ref ProgressBarFinished);
+
+            VacantWavid = result.NextWavId;
+            DefaultVacantBMSChannelIdx = result.NextBmsChannelIndex;
+            trackCsv = result.Cancelled ? null : result.TrackCsv;
+            MidiTrackNames = result.Cancelled ? null : new List<string>(result.TrackNames);
+            MidiInstrumentNames = result.Cancelled
+                ? null
+                : new List<string>(result.InstrumentNames);
+        }
+
+        public Mid2BmsConversionResult Mid2BMS_Process(Mid2BmsConversionRequest request,
+            ref double ProgressBarValue, ref bool ProgressBarFinished)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            request.Validate();
             #region ファイルの更新チェック
             if (!Mid2BMS_CheckHash())  // TODO: 不要なコードの削除or修正
             {
                 // 操作をキャンセルする
                 ProgressBarValue = 1.00;
                 ProgressBarFinished = true;
-                trackCsv = null;
-                MidiTrackNames = null;
-                MidiInstrumentNames = null;
-                return;
+                return Mid2BmsConversionResult.CancelledResult(request);
             }
             #endregion
 
-            new Mid2BmsConverter(PathBase, FileName_MidiFile, NamingStrategy).Run(
-                isRedMode, isPurpleMode, createExFiles, ref VacantWavid, ref DefaultVacantBMSChannelIdx,
-                LookAtInstrumentName, margintime_beats, WavidSpacing,
-                out trackCsv, ref MidiTrackNames, out MidiInstrumentNames,
-                trackSettings, sequenceLayer,
-                newTimebase, velocityStep,
-                ref ProgressBarValue, ref ProgressBarFinished);
+            return new Mid2BmsConverter(PathBase, FileName_MidiFile, NamingStrategy).Run(
+                request, ref ProgressBarValue, ref ProgressBarFinished);
         }
 
 

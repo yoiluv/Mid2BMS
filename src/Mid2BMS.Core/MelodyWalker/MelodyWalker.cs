@@ -125,7 +125,7 @@ namespace Mid2BMS
 
                     int generatedTrackIndex = tanon_ms.tracks.Count;
                     Process(i, (i < MidiTrackNames.Count) ? MidiTrackNames[i] : "MidiTrack " + (i + 1), MMLs[i], pathBase, text, tanon_ms,
-                        0, 0, trackIsRedMode, trackIsPurpleMode, isDrums, isChordMode, isOneShot,
+                        0, 0, settings.Mode, isDrums, isChordMode, isOneShot,
                         out isEmpty, midiTime, ref VacantWavid, timebase, margintime_beats,
                         ref progressValue,
                         progressMin + (progressMax - progressMin) * i / MMLs.Count,
@@ -183,12 +183,6 @@ namespace Mid2BMS
                 //FileStreamFactory.WriteAllText(pathBase + @"text8_errorlog_debug.txt", text[7]);
             }
 
-            if (!trackSettings.Any(x => x.Mode == TrackMode.Red))
-            {
-                String tanon_smf_filename = @"text3_tanon_smf_" + modeSuffix + @".mid";
-                tanon_ms.Export(neu.IFileStream(pathBase + tanon_smf_filename, FileMode.Create, FileAccess.Write), true);
-            }
-
             GeneratedSingleNoteMidi = tanon_ms;
             GeneratedTracksBySourceIndex = Array.AsReadOnly(generatedTracksBySourceIndex);
 
@@ -197,10 +191,12 @@ namespace Mid2BMS
         }
 
         public int Process(int TrackIndex, String MidiTrackName, String mml, String pathBase, StringSuruyatu[] text, MidiStruct tanon_ms,
-            int channel, int wavid, bool isRedMode, bool isPurpleMode,
+            int channel, int wavid, TrackMode mode,
             bool isDrums, bool isChordMode, bool isOneShot, out bool isEmpty, Frac midiTime, ref int VacantWavid, int timebase, String margintime_beats,
             ref double progressValue, double progressMin, double progressMax)
         {
+            bool isRedMode = mode == TrackMode.Red;
+            bool isPurpleMode = mode == TrackMode.Purple;
             MidInterpreter mi;
             MidInterpreter2 mw;
             MidInterpreter3 mi3;
