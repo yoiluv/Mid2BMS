@@ -17,6 +17,8 @@ namespace Mid2BMS
         public int WavidSpacing = 4;
         public KeySoundManifest Manifest { get; private set; } = new KeySoundManifest();
         public IKeySoundNamingStrategy NamingStrategy { get; set; } = new LegacyKeySoundNamingStrategy();
+        internal MidiStruct GeneratedSingleNoteMidi { get; private set; }
+        internal IReadOnlyList<MidiTrack> GeneratedTracksBySourceIndex { get; private set; }
 
         List<String> MMLs = new List<String>();
         List<String> MidiTrackNames = new List<String>();
@@ -81,6 +83,7 @@ namespace Mid2BMS
             }
             
             MidiStruct tanon_ms = new MidiStruct(3840);  // 15360は大きすぎるかな、と思いこの値に
+            MidiTrack[] generatedTracksBySourceIndex = new MidiTrack[MMLs.Count];
             Frac midiTime = new Frac(4);
 
             //bool messageShown = false;
@@ -120,12 +123,15 @@ namespace Mid2BMS
 
                     if (!sequenceLayer) midiTime = new Frac(4);
 
+                    int generatedTrackIndex = tanon_ms.tracks.Count;
                     Process(i, (i < MidiTrackNames.Count) ? MidiTrackNames[i] : "MidiTrack " + (i + 1), MMLs[i], pathBase, text, tanon_ms,
                         0, 0, trackIsRedMode, trackIsPurpleMode, isDrums, isChordMode, isOneShot,
                         out isEmpty, midiTime, ref VacantWavid, timebase, margintime_beats,
                         ref progressValue,
                         progressMin + (progressMax - progressMin) * i / MMLs.Count,
                         progressMin + (progressMax - progressMin) * (i + 1) / MMLs.Count);
+                    if (tanon_ms.tracks.Count > generatedTrackIndex)
+                        generatedTracksBySourceIndex[i] = tanon_ms.tracks[generatedTrackIndex];
 
                     if (!isEmpty)
                     {
@@ -160,7 +166,7 @@ namespace Mid2BMS
                 }
             }
 
-            string modeSuffix = GetModeSuffix(trackSettings);
+            string modeSuffix = TrackSettings.GetModeSuffix(trackSettings);
             String BMSFileName = @"text6_bms_" + modeSuffix + @".txt";
             if (!(NamingStrategy is LegacyKeySoundNamingStrategy)) Manifest.AssertUniqueOutputFileNames();
             FileIO.WriteAllText(pathBase + @"text5_renamer_array.txt", Manifest.ToLegacyRenamerText());
@@ -183,17 +189,11 @@ namespace Mid2BMS
                 tanon_ms.Export(neu.IFileStream(pathBase + tanon_smf_filename, FileMode.Create, FileAccess.Write), true);
             }
 
+            GeneratedSingleNoteMidi = tanon_ms;
+            GeneratedTracksBySourceIndex = Array.AsReadOnly(generatedTracksBySourceIndex);
+
             trackCsv = text[8];
             return 0;
-        }
-
-        private static string GetModeSuffix(IReadOnlyList<TrackSettings> trackSettings)
-        {
-            bool hasBlue = trackSettings.Any(x => x.Mode == TrackMode.Blue);
-            bool hasPurple = trackSettings.Any(x => x.Mode == TrackMode.Purple);
-            if (trackSettings.Any(x => x.Mode == TrackMode.Red)) return "red";
-            if (hasBlue && hasPurple) return "blue_purple";
-            return hasPurple ? "purple" : "blue";
         }
 
         public int Process(int TrackIndex, String MidiTrackName, String mml, String pathBase, StringSuruyatu[] text, MidiStruct tanon_ms,

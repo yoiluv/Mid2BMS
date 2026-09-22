@@ -65,18 +65,10 @@ namespace Mid2BMS
                     throw new ArgumentException("TrackSettings contains an invalid mode at track " + i + ".", nameof(settings));
             }
 
-            bool hasBlue = result.Any(x => x.Mode == TrackMode.Blue);
-            bool hasPurple = result.Any(x => x.Mode == TrackMode.Purple);
-            bool hasRed = result.Any(x => x.Mode == TrackMode.Red);
-
-            if (hasRed && (hasBlue || hasPurple || legacyGlobalMode != TrackMode.Red))
-                throw new NotSupportedException("Red mode cannot be mixed with Blue or Purple until Phase 12.");
-            if (!hasRed && legacyGlobalMode == TrackMode.Red)
-                throw new NotSupportedException("A legacy Red-mode request must use Red TrackSettings until Phase 12.");
-            if (hasBlue && hasPurple && sequenceLayer)
-                throw new NotSupportedException("Blue/Purple mixing with SequenceLayer is introduced in Phase 12.");
-            if (hasBlue && hasPurple && result.Any(x => x.Mode == TrackMode.Purple && x.IsChord))
+            if (result.Any(x => x.Mode == TrackMode.Purple && x.IsChord))
                 throw new ArgumentException("Purple tracks cannot use Chord mode.", nameof(settings));
+            if (result.Any(x => x.IsXChain && (x.Mode != TrackMode.Red || !sequenceLayer)))
+                throw new ArgumentException("XChain requires a Red track with SequenceLayer enabled.", nameof(settings));
 
             return Array.AsReadOnly(result);
         }
@@ -85,6 +77,15 @@ namespace Mid2BMS
             Func<TrackSettings, bool> selector)
         {
             return settings.Select(selector).ToList();
+        }
+
+        internal static string GetModeSuffix(IReadOnlyList<TrackSettings> settings)
+        {
+            var modes = new List<string>();
+            if (settings.Any(x => x.Mode == TrackMode.Blue)) modes.Add("blue");
+            if (settings.Any(x => x.Mode == TrackMode.Purple)) modes.Add("purple");
+            if (settings.Any(x => x.Mode == TrackMode.Red)) modes.Add("red");
+            return string.Join("_", modes);
         }
 
         private static bool ValueAt(IReadOnlyList<bool> values, int index)

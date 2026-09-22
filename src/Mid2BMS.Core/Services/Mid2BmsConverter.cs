@@ -269,46 +269,61 @@ namespace Mid2BMS
             {
                 MidiStruct ms2 = new MidiStruct(quantizedMidiStreamGenerator(), true);
 
-                int margintime_beats_int = (int)Math.Ceiling(Convert.ToDouble(margintime_beats));
-                MidiTrack.SPLIT_BEATS_INTERVAL = margintime_beats_int + 4;
-                MidiTrack.SPLIT_BEATS_AUTOMATIONLEFT = 2;
-                MidiTrack.SPLIT_BEATS_AUTOMATIONRIGHT = margintime_beats_int + 0;
-
-                for (int trid = 0; trid < normalizedTrackSettings.Count; trid++)
+                bool hasNonRedTrack = normalizedTrackSettings.Any(x => x.Mode != TrackMode.Red);
+                if (hasNonRedTrack)
                 {
-                    if (normalizedTrackSettings[trid].Ignore)
-                    {
-                        ms2.tracks[trid] = new MidiTrack(ms2.tracks[trid].Where(x => !(x is MidiEventNote)));
-                    }
-                }
-
-                if (!sequenceLayer)  // シーケンスレイヤーとして書き出す（テンポチェンジを含む場合はチェックしてください）
-                {
-                    for (int i = 1; i < ms2.tracks.Count; i++)  // 1から処理
-                    {
-                        bool isChordMode = normalizedTrackSettings[i].IsChord;
-                        ms2.tracks[i] = ms2.tracks[i].SplitNotes(ms2, isChordMode);  // コンダクタートラックはそのままにする(主にテンポ保持のため)
-                    }
+                    MidiStruct mixedMidi = new MixedModeMidiBuilder().Build(ms2,
+                        mw.GeneratedSingleNoteMidi, mw.GeneratedTracksBySourceIndex,
+                        normalizedTrackSettings, sequenceLayer, margintime_beats);
+                    string suffix = TrackSettings.GetModeSuffix(normalizedTrackSettings);
+                    mixedMidi.Export(neu.IFileStream(
+                        PathBase + @"text3_tanon_smf_" + suffix + @".mid",
+                        FileMode.Create, FileAccess.Write), true);
                 }
                 else
                 {
-                    // ノート数が5000を超える場合は中断しても良いと思う(でもノート数よりオートメーションが極端に多いと問題の解決にならない)
-                    // 小節数が9999を超える場合はさすがに中断しよう
-                    try
-                    {
-                        var directsum = MidiTrack.DirectSum(ms2.tracks);
-                        List<bool> isChordList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsChord);
-                        List<bool> isXChainList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsXChain);
-                        var splitted = MidiTrack.SplitNotes(directsum, ms2, isChordList, isXChainList);
-                        ms2.tracks = MidiTrack.DirectDifference(splitted);
-                    }
-                    catch (Exception e)
-                    {
-                        CoreInteraction.ShowMessage(e.ToString());
-                    }
-                }
 
-                ms2.Export(neu.IFileStream(PathBase + @"text3_tanon_smf_red.mid", FileMode.Create, FileAccess.Write), true);
+                    int margintime_beats_int = (int)Math.Ceiling(Convert.ToDouble(margintime_beats));
+                    MidiTrack.SPLIT_BEATS_INTERVAL = margintime_beats_int + 4;
+                    MidiTrack.SPLIT_BEATS_AUTOMATIONLEFT = 2;
+                    MidiTrack.SPLIT_BEATS_AUTOMATIONRIGHT = margintime_beats_int + 0;
+
+                    for (int trid = 0; trid < normalizedTrackSettings.Count; trid++)
+                    {
+                        if (normalizedTrackSettings[trid].Ignore)
+                        {
+                            ms2.tracks[trid] = new MidiTrack(ms2.tracks[trid].Where(x => !(x is MidiEventNote)));
+                        }
+                    }
+
+                    if (!sequenceLayer)  // シーケンスレイヤーとして書き出す（テンポチェンジを含む場合はチェックしてください）
+                    {
+                        for (int i = 1; i < ms2.tracks.Count; i++)  // 1から処理
+                        {
+                            bool isChordMode = normalizedTrackSettings[i].IsChord;
+                            ms2.tracks[i] = ms2.tracks[i].SplitNotes(ms2, isChordMode);  // コンダクタートラックはそのままにする(主にテンポ保持のため)
+                        }
+                    }
+                    else
+                    {
+                        // ノート数が5000を超える場合は中断しても良いと思う(でもノート数よりオートメーションが極端に多いと問題の解決にならない)
+                        // 小節数が9999を超える場合はさすがに中断しよう
+                        try
+                        {
+                            var directsum = MidiTrack.DirectSum(ms2.tracks);
+                            List<bool> isChordList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsChord);
+                            List<bool> isXChainList = TrackSettings.SelectFlags(normalizedTrackSettings, x => x.IsXChain);
+                            var splitted = MidiTrack.SplitNotes(directsum, ms2, isChordList, isXChainList);
+                            ms2.tracks = MidiTrack.DirectDifference(splitted);
+                        }
+                        catch (Exception e)
+                        {
+                            CoreInteraction.ShowMessage(e.ToString());
+                        }
+                    }
+
+                    ms2.Export(neu.IFileStream(PathBase + @"text3_tanon_smf_red.mid", FileMode.Create, FileAccess.Write), true);
+                }
             }
             #endregion
 
