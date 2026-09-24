@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^v\d{8}$')]
-    [string]$Version = "v20260922",
+    [string]$Version = "v20260923",
 
     [switch]$SkipTests
 )

@@ -13451,7 +13451,7 @@ redモードの場合はmidiのファイルサイズが非常に大きくなっ�
 </value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Mid2BMS - BMS Improved Development Environment (v20181018)</value>
+    <value>Mid2BMS - BMS Improved Development Environment (v20260923)</value>
   </data>
   <data name="&gt;&gt;timer1.Name" xml:space="preserve">
     <value>timer1</value>

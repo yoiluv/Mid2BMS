@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <Version>2026.9.22</Version>
-    <AssemblyVersion>2026.9.22.0</AssemblyVersion>
-    <FileVersion>2026.9.22.0</FileVersion>
-    <InformationalVersion>v20260922</InformationalVersion>
+    <Version>2026.9.23</Version>
+    <AssemblyVersion>2026.9.23.0</AssemblyVersion>
+    <FileVersion>2026.9.23.0</FileVersion>
+    <InformationalVersion>v20260923</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Authors>yuinore and Mid2BMS contributors</Authors>
     <Company>Mid2BMS contributors</Company>
